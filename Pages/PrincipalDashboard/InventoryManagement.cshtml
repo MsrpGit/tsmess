@@ -1,0 +1,266 @@
+﻿@page
+@model tsmess.Pages.PrincipalDashboard.InventoryManagementModel
+@{
+    Layout = null;
+}
+
+<div class="row">
+    <!-- Card Template Start -->
+    <div class="col-md-4">
+        <div class="cardcus">
+            <h6>Dry Provision</h6>
+            <div>
+                <button class="btn btn-sm btn-customcus me-2 modalpopup add-item-btn" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+            </div>
+        </div>
+    </div>
+    <!-- Repeat this block for each item -->
+    <div class="col-md-4">
+        <div class="cardcus">
+            <h6>Perishable</h6>
+            <div>
+                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="cardcus">
+            <h6>Rice</h6>
+            <div>
+                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="cardcus">
+            <h6>Cleaning Agents</h6>
+            <div>
+                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="cardcus">
+            <h6>Equipment / Utensils</h6>
+            <div>
+                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="cardcus">
+            <h6>Ticket</h6>
+            <div>
+                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="cardcus">
+            <h6>From Other School</h6>
+            <div>
+                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <h6 class="fw-bold">Items Nearing Expiry</h6>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Category</th>
+                    <th>Item Name</th>
+                    <th>Days To Expiry</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1.</td>
+                    <td>Pulses</td>
+                    <td>Kandi Pappu</td>
+                    <td>10 days</td>
+                </tr>
+                <tr>
+                    <td>2.</td>
+                    <td>Pulses</td>
+                    <td>Pesarlu</td>
+                    <td>11 days</td>
+                </tr>
+                <tr>
+                    <td>3.</td>
+                    <td>Pulses</td>
+                    <td>Putnalu</td>
+                    <td>13 days</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <!-- Card Template End -->
+    <div class="modal fade" id="apModal" tabindex="-1" aria-labelledby="apLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="apLabel">Add Provision</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Items</th>
+                                <th>Quantity Present</th>
+                                <th>Vendor</th>
+                                <th>Received Date</th>
+                                <th>Qty. Received</th>
+                                <th>Expiry Date<br><small>(3 Months Checked)</small></th>
+                                <th>Quality</th>
+                                <th>Action</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>01</td>
+                                <td>
+                                    <input type="text" class="form-control" placeholder="Search" list="itemList">
+                                    <datalist id="itemList">
+                                        <!-- Options will be dynamically populated -->
+                                    </datalist>
+                                </td>
+
+                                <td><input type="text" id="quantityPresent" class="form-control" value="0" disabled></td>
+                                <td>
+                                    <select class="form-select">
+                                        <option>--Select Vendor--</option>
+                                        @if (Model.Vendors != null && Model.Vendors.Any())
+                                        {
+                                            @foreach (var vendor in Model.Vendors)
+                                            {
+                                                <option value="@vendor.SupplierId">@vendor.SupplierName</option>
+                                            }
+                                        }
+                                    </select>
+
+
+                                </td>
+                                <td><input type="date" class="form-control"></td>
+                                <td><input type="text" class="form-control" value="60"></td>
+                                <td><input type="date" class="form-control"></td>
+                                <td class="text-start">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="adulteration">
+                                        <label class="form-check-label" for="adulteration">No Adulteration</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="smell">
+                                        <label class="form-check-label" for="smell">No Foul Smell</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="insects">
+                                        <label class="form-check-label" for="insects">No Insects</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="tampering">
+                                        <label class="form-check-label" for="tampering">No Tampering</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="packing">
+                                        <label class="form-check-label" for="packing">Not Cleanly Packed</label>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-accept mb-1">Accept</button><br>
+                                    <button class="btn btn-reject">Reject</button>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="dpModal" tabindex="-1" aria-labelledby="dpLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="dpLabel">Delete Provision</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Items</th>
+                                <th>Qty Present</th>
+                                <th>Qty to be Deleted</th>
+                                <th>Reason for Deletion</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>01</td>
+                                <td><input type="text" class="form-control" placeholder="Search"></td>
+                                <td>50</td>
+                                <td><input type="number" value="20" class="form-control"></td>
+                                <td>Dolor sit consectetur adipiscing dolor sit consectetur adip</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                            </tr>
+                            <tr>
+                                <td>02</td>
+                                <td>Fruits</td>
+                                <td>100</td>
+                                <td><input type="number" value="100" class="form-control"></td>
+                                <td>Dolor sit consectetur adipiscing dolor sit consectetur adipiscing drywry4</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                            </tr>
+                            <tr>
+                                <td>03</td>
+                                <td>Fruits</td>
+                                <td>30</td>
+                                <td><input type="number" value="10" class="form-control"></td>
+                                <td>consectetur adipiscing dolor sit consectetur adipiscing</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                            </tr>
+                            <tr>
+                                <td>04</td>
+                                <td>Fruits</td>
+                                <td>50</td>
+                                <td><input type="number" value="10" class="form-control"></td>
+                                <td>Sit consectetur adipiscing dolor sit consectetur</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                            </tr>
+                            <tr>
+                                <td>05</td>
+                                <td>Fruits</td>
+                                <td>20</td>
+                                <td><input type="number" value="5" class="form-control"></td>
+                                <td>Dolor sit consectetur adipiscing dipiscing drywry4</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                            </tr>
+                            <tr>
+                                <td>06</td>
+                                <td>Fruits</td>
+                                <td>20</td>
+                                <td><input type="number" value="3" class="form-control"></td>
+                                <td>Dolor sit consectetur adipiscing dolor sit consectetur adipiscing drywry4</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

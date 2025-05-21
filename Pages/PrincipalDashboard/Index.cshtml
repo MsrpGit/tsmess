@@ -1,0 +1,941 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/script.js"></script>
+<script>
+    const profileIcon = document.querySelector('img[src="img/profile_icon.png"]');
+    const profileMenu = document.getElementById('profileMenu');
+
+    profileIcon.addEventListener('click', () => {
+        profileMenu.style.display = profileMenu.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Optional: close dropdown when clicking outside
+    document.addEventListener('click', function (event) {
+        if (!profileIcon.contains(event.target) && !profileMenu.contains(event.target)) {
+            profileMenu.style.display = 'none';
+        }
+    });
+    function toggleMessagesPopup() {
+        const popup = document.getElementById("messagesPopup");
+        popup.classList.toggle("d-none");
+    }
+
+    // Stop click inside popup from closing it
+    document.getElementById("messagesPopup").addEventListener("click", function (event) {
+        event.stopPropagation();
+    });
+
+    // Hide popup when clicking outside
+    document.addEventListener("click", function (event) {
+        const popup = document.getElementById("messagesPopup");
+        const label = document.querySelector("label.position-relative");
+
+        if (!popup.contains(event.target) && !label.contains(event.target)) {
+            popup.classList.add("d-none");
+        }
+    });
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("v-pills-messages-tab").addEventListener("click", function () {
+            fetch('/PrincipalDashboard/InventoryManagement')
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById("inventoryContent").innerHTML = html;
+                    const addItemButtons = document.querySelectorAll(".add-item-btn");
+                    const itemList = document.getElementById("itemList");
+
+                    addItemButtons.forEach(button => {
+                        button.addEventListener("click", function () {
+                            // Fetch items from the server
+                            fetch('/PrincipalDashboard/InventoryManagement?handler=GetItems')
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! Status: ${response.status}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(items => {
+                                    // Populate the datalist with items
+                                    itemList.innerHTML = ""; // Clear existing options
+                                    items.forEach(item => {
+                                        const option = document.createElement("option");
+                                        option.value = item.itemName; // Assuming the item has a 'name' property
+                                        option.setAttribute("data-id", item.itemId);
+                                        itemList.appendChild(option);
+                                    });
+                                })
+                                .catch(err => {
+                                    console.error("Error fetching items:", err);
+                                });
+                        });
+                    });
+
+                    const itemSearch = document.querySelector("input[list='itemList']");
+                    itemSearch.addEventListener("change", function () {
+                        const inputValue = itemSearch.value;
+                        const matchedOption = [...itemList.options].find(opt => opt.value === inputValue);
+
+                        if (matchedOption) {
+                            const itemId = matchedOption.getAttribute("data-id");
+                            if (itemId) {
+                                // Fetch the stock value for the selected item
+                                fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error(`HTTP error! Status: ${response.status}`);
+                                        }
+                                        return response.json();
+                                    })
+                                    .then(data => {
+                                        // Populate the Quantity Present field
+                                        quantityPresent.value = data.quantity || "0"; // Default to 0 if no stock is found
+                                    })
+                                    .catch(err => {
+                                        console.error("Error fetching item stock:", err);
+                                        quantityPresent.value = "Error";
+                                    });
+                            }
+                        }
+                    });
+
+                    // const itemSearch = document.querySelector("input[list='itemList']");
+                    // const quantityPresent = document.getElementById("quantityPresent");
+
+                    // itemSearch.addEventListener("input", function () {
+                    //     const itemName = itemSearch.value;
+
+                    //     // Fetch the stock value for the selected item
+                    //     fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemName=${encodeURIComponent(itemName)}`)
+                    //         .then(response => {
+                    //             if (!response.ok) {
+                    //                 throw new Error(`HTTP error! Status: ${response.status}`);
+                    //             }
+                    //             return response.json();
+                    //         })
+                    //         .then(data => {
+                    //             // Populate the Quantity Present field
+                    //             quantityPresent.value = data.Quantity || "0"; // Default to 0 if no stock is found
+                    //         })
+                    //         .catch(err => {
+                    //             console.error("Error fetching item stock:", err);
+                    //             quantityPresent.value = "Error";
+                    //         });
+                    // });
+                })
+                .catch(err => {
+                    document.getElementById("inventoryContent").innerHTML = "<p>Error loading content.</p>";
+                    console.error(err);
+                });
+        });
+    });
+
+
+</script>
+<div class="bg-white mt-2 py-2">
+    <h4 class="text-center">Diet</h4>
+</div>
+<div class="tab_design mt-3">
+    <div class="d-flex align-items-start custom-tab-wrapper">
+        <div class="nav flex-column nav-pills custom-nav" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+            <button class="nav-link active text-start" id="v-pills-home-tab" data-bs-toggle="pill" data-bs-target="#v-pills-home" type="button" role="tab" aria-controls="v-pills-home" aria-selected="true">Diet</button>
+            <button class="nav-link text-start" id="v-pills-profile-tab" data-bs-toggle="pill" data-bs-target="#v-pills-profile" type="button" role="tab" aria-controls="v-pills-profile" aria-selected="false">Storage</button>
+            <button class="nav-link text-start" id="v-pills-messages-tab" data-bs-toggle="pill" data-bs-target="#v-pills-messages" type="button" role="tab" aria-controls="v-pills-messages" aria-selected="false">Inventory Management</button>
+            <button class="nav-link text-start" id="v-pills-settings-tab" data-bs-toggle="pill" data-bs-target="#v-pills-settings" type="button" role="tab" aria-controls="v-pills-settings" aria-selected="false">Indent</button>
+            <button class="nav-link text-start" id="v-pills-ticket-tab" data-bs-toggle="pill" data-bs-target="#v-pills-ticket" type="button" role="tab text-start" aria-controls="v-pills-ticket" aria-selected="false">Ticket</button>
+            <button class="nav-link text-start" id="v-pills-vm-tab" data-bs-toggle="pill" data-bs-target="#v-pills-vm" type="button" role="tab" aria-controls="v-pills-vm" aria-selected="false">Vendor Management</button>
+        </div>
+        <div class="tab-content custom-tab-content p-3 m-0 w-100" id="v-pills-tabContent">
+            <div class="tab-pane fade show active" id="v-pills-home" role="tabpanel" aria-labelledby="v-pills-home-tab">
+                <div class="row">
+                    <div class="col-md-9">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title">Diet Plan</h5>
+                            <div>
+                                <!-- <button class="btn btn-outline-primary btn-sm">Print Menu</button> -->
+                                <!-- <button class="btn btn-success btn-sm">Print Provisions</button> -->
+                                <!-- <button class="btn btn-outline-secondary btn-sm">+ Raise Ticket</button> -->
+                            </div>
+                        </div>
+                        <!-- Today's Plan -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <span class="text-primary">Today's Plan</span> (Saturday 17-05-2025)
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-bordered text-center">
+                                    <thead class="text-white" style="background: linear-gradient(to right, #4e54c8, #8f94fb);">
+                                        <tr>
+                                            <th>Breakfast</th>
+                                            <th>Break</th>
+                                            <th>Lunch</th>
+                                            <th>Snacks</th>
+                                            <th>Dinner</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Idli with Palli Chutney/Sambar</td>
+                                            <td>Fruit</td>
+                                            <td>Rice, Dal, Mix Vegetable Curry, Curd</td>
+                                            <td>Biscuits with Tea</td>
+                                            <td>Chapati, Paneer Butter Masala, Vegetable Pulao</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Tomorrow's Plan -->
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <span class="text-danger">Tomorrow's Plan</span> (Sunday 18-05-2025)
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-bordered text-center">
+                                    <thead style="background: linear-gradient(to right, #4e54c8, #8f94fb); color: white;">
+                                        <tr>
+                                            <th>Breakfast</th>
+                                            <th>Break</th>
+                                            <th>Lunch</th>
+                                            <th>Snacks</th>
+                                            <th>Dinner</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Idli with Palli Chutney/Sambar</td>
+                                            <td>Fruit</td>
+                                            <td>Rice, Dal, Mix Vegetable Curry, Curd</td>
+                                            <td>Biscuits with Tea</td>
+                                            <td>Chapati, Paneer Butter Masala, Vegetable Pulao</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right Sidebar -->
+                    <div class="col-md-3">
+                        <div class="card text-center mb-3">
+                            <div class="card-body">
+                                <h6 class="text-muted">Today's Attendance</h6>
+                                <input type="text" class="form-control" value="620">
+                            </div>
+                        </div>
+                        <div class="card text-center mb-3">
+                            <div class="card-body">
+                                <h6 class="text-muted">Sick Students</h6>
+                                <input type="text" class="form-control" value="20">
+                            </div>
+                        </div>
+                        <div class="card text-center mb-3">
+                            <div class="card-body">
+                                <h6 class="text-muted">Student Attendance for Tomorrow</h6>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <h6>Regular</h6>
+                                        <input type="text" class="form-control" value="620">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <h6>Sick</h6>
+                                        <input type="text" class="form-control" value="20">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-magenta w-100 text-white" style="background-color: #aa007a;">Go</button>
+                        <button class="btn btn-success w-100 mt-3">Print Provisions</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="v-pills-profile" role="tabpanel" aria-labelledby="v-pills-profile-tab">
+                <div class="row">
+                    <div class="col-12">
+                        <ul class="nav nav-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-bs-toggle="tab" href="#provision">Dry Provision</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#perishablee">Perishables</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#rice">Rice</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#cleaning">Cleaning Agents</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#utensils">Equipment / Utensils</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#fos">From Other School</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <div id="provision" class="tab-pane fade show active">
+                                <div class="date-filters justify-content-end align-items-center">
+                                    <h6 class="mb-0 fw-bold">Consumption Sheet :</h6>
+                                    <label for="fromDate" class="text-end">From</label>
+                                    <input type="date" id="fromDate" class="form-control" style="width: 200px;">
+                                    <label for="toDate">To</label>
+                                    <input type="date" id="toDate" class="form-control" style="width: 200px;">
+                                    <button class="btn btn-outline-secondary"><img src="img/print_icon.png"></button>
+                                    <button class="btn btn-outline-secondary"><img src="img/download_icon.png"></button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered text-center">
+                                        <thead class="gradient-header">
+                                            <tr>
+                                                <th>S.No</th>
+                                                <th>Pulses</th>
+                                                <th>Beginning of Month</th>
+                                                <th>Present</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>01</td>
+                                                <td>Groundnut</td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><img src="img/edit_icon.jpg"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td>02</td>
+                                                <td>Kandi Pappu</td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><img src="img/edit_icon.jpg"></i></td>
+                                            </tr>
+                                            <tr class="gradient-header">
+                                                <th>S.No</th>
+                                                <th>Condiments / Spices / Beverages</th>
+                                                <th>Beginning of Month</th>
+                                                <th>Present</th>
+                                                <th>Action</th>
+                                            </tr>
+                                            <tr>
+                                                <td>03</td>
+                                                <td>Garam Masala</td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><img src="img/edit_icon.jpg"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td>04</td>
+                                                <td>Sambar Powder</td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><img src="img/edit_icon.jpg"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <th>S.No</th>
+                                                <th>Oil / Ghee</th>
+                                                <th>Beginning of Month</th>
+                                                <th>Present</th>
+                                                <th>Action</th>
+                                            </tr>
+                                            <tr>
+                                                <td>05</td>
+                                                <td>Vijaya Oil</td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td><img src="img/edit_icon.jpg"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td>06</td>
+                                                <td>Ghee</td>
+                                                <td><input type="text" class="form-control"></td>
+                                                <td></td>
+                                                <input type="text" class="form-control">
+                                                <td><img src="img/edit_icon.jpg"></i></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div id="perishablee" class="tab-pane fade">
+                                <div class="date-filters justify-content-end">
+                                    <label for="fromDate">From</label>
+                                    <input type="date" id="fromDate" class="form-control" style="width: 200px;">
+                                    <label for="toDate">To</label>
+                                    <input type="date" id="toDate" class="form-control" style="width: 200px;">
+                                    <button class="btn btn-outline-secondary"><img src="img/print_icon.png"></button>
+                                    <button class="btn btn-outline-secondary"><img src="img/download_icon.png"></button>
+                                </div>
+                                <table class="table table-bordered text-center align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>S.No</th>
+                                            <th>Vegetables</th>
+                                            <th>Balance Qty</th>
+                                            <th>Recently Added</th>
+                                            <th>Received Date</th>
+                                            <th>Present Availability</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>01</td>
+                                            <td>Onion</td>
+                                            <td><input type="text" class="form-control" value="40"></td>
+                                            <td><input type="text" class="form-control" value="80"></td>
+                                            <td><input type="date" class="form-control"></td>
+                                            <td><input type="text" class="form-control" value="120"></td>
+                                            <td><img src="img/edit_icon.jpg"></i></td>
+                                        </tr>
+                                        <tr>
+                                            <td>02</td>
+                                            <td>Cabbage</td>
+                                            <td><input type="text" class="form-control" value="10"></td>
+                                            <td><input type="text" class="form-control" value="250"></td>
+                                            <td><input type="date" class="form-control"></td>
+                                            <td><input type="text" class="form-control" value="260"></td>
+                                            <td><img src="img/edit_icon.jpg"></i></td>
+                                        </tr>
+                                        <tr>
+                                            <th>S.No</th>
+                                            <th>Fruits</th>
+                                            <th>Balance Qty</th>
+                                            <th>Recently Added</th>
+                                            <th>Received Date</th>
+                                            <th>Present Availability</th>
+                                            <th></th>
+                                        </tr>
+                                        <tr>
+                                            <td>01</td>
+                                            <td>Banana</td>
+                                            <td><input type="text" class="form-control" value="100"></td>
+                                            <td><input type="text" class="form-control" value="500"></td>
+                                            <td><input type="date" class="form-control"></td>
+                                            <td><input type="text" class="form-control" value="600"></td>
+                                            <td><img src="img/edit_icon.jpg"></i></td>
+                                        </tr>
+                                        <tr>
+                                            <th>S.No</th>
+                                            <th>Milk</th>
+                                            <th>Balance Qty</th>
+                                            <th>Recently Added</th>
+                                            <th>Received Date</th>
+                                            <th>Present Availability</th>
+                                            <th>Action</th>
+                                        </tr>
+                                        <tr>
+                                            <td>05</td>
+                                            <td>Eggs</td>
+                                            <td><input type="text" class="form-control" value="20"></td>
+                                            <td><input type="text" class="form-control" value="100"></td>
+                                            <td><input type="date" class="form-control"></td>
+                                            <td><input type="text" class="form-control" value="120"></td>
+                                            <td><img src="img/edit_icon.jpg"></i></td>
+                                        </tr>
+                                        <tr>
+                                            <td>06</td>
+                                            <td>Chicken</td>
+                                            <td><input type="text" class="form-control" value="20"></td>
+                                            <td><input type="text" class="form-control" value="30"></td>
+                                            <td><input type="date" class="form-control" value="40"></td>
+                                            <td><input type="text" class="form-control" value="50"></td>
+                                            <td><img src="img/edit_icon.jpg"></i></td>
+                                        </tr>
+                                        <tr>
+                                            <td>07</td>
+                                            <td>Mutton</td>
+                                            <td><input type="text" class="form-control" value="30"></td>
+                                            <td><input type="text" class="form-control" value="30"></td>
+                                            <td><input type="date" class="form-control"></td>
+                                            <td><input type="text" class="form-control" value="70"></td>
+                                            <td><img src="img/edit_icon.jpg"></i></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="rice" class="tab-pane fade">
+                                <div class="date-filters justify-content-end">
+                                    <label for="fromDate">From</label>
+                                    <input type="date" id="fromDate" class="form-control" style="width: 200px;">
+                                    <label for="toDate">To</label>
+                                    <input type="date" id="toDate" class="form-control" style="width: 200px;">
+                                    <button class="btn btn-outline-secondary"><img src="img/print_icon.png"></button>
+                                    <button class="btn btn-outline-secondary"><img src="img/download_icon.png"></button>
+                                </div>
+                                <table class="table table-bordered text-center align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>S.No</th>
+                                            <th>Last Pickup Date</th>
+                                            <th>Last Pickup Qty</th>
+                                            <th>Present Pickup Date</th>
+                                            <th>Present Pickup Qty</th>
+                                            <th>Consumption Qty of the Day</th>
+                                            <th>Total Availability Qty</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>01</td>
+                                            <td><input type="date" class="form-control"></td>
+                                            <td><input type="text" class="form-control" value="150"></td>
+                                            <td><input type="date" class="form-control"></td>
+                                            <td><input type="text" class="form-control" value="150"></td>
+                                            <td><input type="text" class="form-control" value="60"></td>
+                                            <td><input type="text" class="form-control" value="240"></td>
+                                            <td><img src="img/edit_icon.jpg"></i></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="cleaning" class="tab-pane fade">
+                            </div>
+                            <div id="utensils" class="tab-pane fade">
+                            </div>
+                            <div id="fos" class="tab-pane fade">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="v-pills-messages" role="tabpanel" aria-labelledby="v-pills-messages-tab">
+                <h6 class="section-title">Inventory Management</h6>
+                <div id="inventoryContent">
+                    <p>Loading...</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="v-pills-settings" role="tabpanel" aria-labelledby="v-pills-settings-tab">
+                <div class="row">
+                    <div class="col-12">
+                        <ul class="nav nav-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-bs-toggle="tab" href="#provision1">Dry Provision</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#perishablee1">Perishablee</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#rice1">Rice</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#cleaning1">Cleaning Agents</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#utensils1">Equipment / Utensils</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#fos1">From Other School</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <div id="provision1" class="tab-pane fade show active">
+                                <div class="date-filters justify-content-end">
+                                    <button class="btn btn-outline-secondary"><img src="img/print_icon.png"></button>
+                                    <button class="btn btn-outline-secondary"><img src="img/download_icon.png"></button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered text-center">
+                                        <thead class="gradient-header">
+                                            <tr>
+                                                <th>S.No</th>
+                                                <th>Item</th>
+                                                <th>Present Qty</th>
+                                                <th>Suggestion (for 640 Students)</th>
+                                                <th>Qty. Indented</th>
+                                                <th>Reasons for more or Less than Suggestions</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>01</td>
+                                                <td>Pulses</td>
+                                                <td>50 Kg</td>
+                                                <td><input type="text" class="form-control" value="500 Kg"></td>
+                                                <td><input type="text" class="form-control" value="50 Kg"></td>
+                                                <td><input type="text" class="form-control" value="Dolor sit consectetur adip"></td>
+                                                <td><button class="submit-button">Submit</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>02</td>
+                                                <td>Vegetables</td>
+                                                <td>20 Kg</td>
+                                                <td><input type="text" class="form-control" value="300 Kg"></td>
+                                                <td><input type="text" class="form-control" value="20 Kg"></td>
+                                                <td><input type="text" class="form-control" value="Consectetur adipiscing"></td>
+                                                <td><button class="submit-button">Submit</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>03</td>
+                                                <td>Spices</td>
+                                                <td>25 Kg</td>
+                                                <td><input type="text" class="form-control" value="200 Kg"></td>
+                                                <td><input type="text" class="form-control" value="25 Kg"></td>
+                                                <td><input type="text" class="form-control" value="Consectetur adipiscing"></td>
+                                                <td><button class="submit-button">Submit</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>04</td>
+                                                <td>Beverages</td>
+                                                <td>200 Kg</td>
+                                                <td><input type="text" class="form-control" value="500 Kg"></td>
+                                                <td><input type="text" class="form-control" value="200 Kg"></td>
+                                                <td><input type="text" class="form-control" value="Adipiscing dolor sit consect"></td>
+                                                <td><button class="submit-button">Submit</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>05</td>
+                                                <td>Dal</td>
+                                                <td>80 Kg</td>
+                                                <td><input type="text" class="form-control" value="600 Kg"></td>
+                                                <td><input type="text" class="form-control" value="80 Kg"></td>
+                                                <td><input type="text" class="form-control" value="Dipiscing drywry4"></td>
+                                                <td><button class="submit-button">Submit</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>06</td>
+                                                <td>Spices</td>
+                                                <td>60 Kg</td>
+                                                <td><input type="text" class="form-control" value="200 Kg"></td>
+                                                <td><input type="text" class="form-control" value="60 Kg"></td>
+                                                <td><input type="text" class="form-control" value="Consectetur adipiscing"></td>
+                                                <td><button class="submit-button">Submit</button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div id="perishablee1" class="tab-pane fade">
+                            </div>
+                            <div id="rice1" class="tab-pane fade">
+                            </div>
+                            <div id="cleaning1" class="tab-pane fade">
+                            </div>
+                            <div id="utensils1" class="tab-pane fade">
+                            </div>
+                            <div id="fos1" class="tab-pane fade">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="v-pills-ticket" role="tabpanel" aria-labelledby="v-pills-ticket-tab">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-12 text-end">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">New Ticket</button>
+                    </div>
+                    <div class="col-sm-12">
+                        <div class="white-box shadow-sm">
+                            <div class="table-header">
+                                <h5><span class="pink fw-bold">Tickets Raised</span></h5>
+                                <div class="table-tools">
+                                    <input type="text" class="form-control" placeholder="Search..." />
+                                    <select class="form-select">
+                                        <option>Pending</option>
+                                        <option>Completed</option>
+                                    </select>
+                                    <img src="img/print_icon.png">
+                                    <img src="img/download_icon.png" class="download_img">
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered mt-2" id="tsmess-table">
+                                    <thead id="attendance-table">
+                                        <tr>
+                                            <th>Ticket ID</th>
+                                            <th>Date</th>
+                                            <th>Changed Menu</th>
+                                            <th>Reason</th>
+                                            <th>Details</th>
+                                            <th>Document</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="table-body">
+                                        <tr>
+                                            <td>TGS3</td>
+                                            <td>04-05-2025</td>
+                                            <td>Breakfast</td>
+                                            <td>Outbreak of Disease</td>
+                                            <td>dummy details</td>
+                                            <td><a href="#" class="text-primary">View</a></td>
+                                            <td><span class="badge text-bg-danger">Pending</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>TGS2</td>
+                                            <td>05-05-2025</td>
+                                            <td>Dinner</td>
+                                            <td>Non-Availability of Cook</td>
+                                            <td>dummy details</td>
+                                            <td><a href="#" class="text-primary">View</a></td>
+                                            <td><span class="badge text-bg-danger">Pending</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>TGS1</td>
+                                            <td>01-05-2025</td>
+                                            <td>Snacks</td>
+                                            <td>Lack of Provision Supply</td>
+                                            <td>dummy details</td>
+                                            <td><a href="#" class="text-primary">View</a></td>
+                                            <td><span class="badge text-bg-success">Approved</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="exampleModalLabel">New Ticket</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Reason for Change</label>
+                                        <select class="form-select">
+                                            <option>Outbreak of Disease</option>
+                                            <option>Lack of Provision Supply</option>
+                                            <option>Non-Availablity of Cook</option>
+                                            <option>Festivals/Programs</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-6"></div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">From Date</label>
+                                        <input type="date" class="form-control">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">To Date</label>
+                                        <input type="date" class="form-control">
+                                    </div>
+                                    <div class="col-sm-12">
+                                        <label class="form-label">Change Menu Details</label>
+                                        <br />
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1">
+                                            <label class="form-check-label" for="inlineRadio1">Breakfast</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2">
+                                            <label class="form-check-label" for="inlineRadio2">Lunch</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2">
+                                            <label class="form-check-label" for="inlineRadio2">Dinner</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2">
+                                            <label class="form-check-label" for="inlineRadio2">Snacks</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Reason In Words</label>
+                                        <textarea rows="2" class="form-control"></textarea>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Attach Document</label>
+                                        <input type="file" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary">Submit</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="v-pills-vm" role="tabpanel" aria-labelledby="v-pills-vm-tab">
+                <div class="row">
+                    <div class="col-12">
+                        <ul class="nav nav-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-bs-toggle="tab" href="#provision2">Add Vendor</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#perishablee2">Delete Vendor</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#rice2">Edit Vendor</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#cleaning2">Edit Cost</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <div id="provision2" class="tab-pane fade show active">
+                                <div class="date-filters justify-content-end">
+                                    <button class="btn btn-outline-secondary"><img src="img/print_icon.png"></button>
+                                    <button class="btn btn-outline-secondary"><img src="img/download_icon.png"></button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered text-center align-middle">
+                                        <thead class="table-primary">
+                                            <tr>
+                                                <th>S.No</th>
+                                                <th>Fixed List of Items</th>
+                                                <th>Present Date</th>
+                                                <th>Provision / Perishable / Cleaning Agents</th>
+                                                <th>Order No.</th>
+                                                <th>Vendor Name</th>
+                                                <th>Bank Details</th>
+                                                <th>Vendor Contact</th>
+                                                <th>Cost Fixed</th>
+                                                <th>Max Qty. per Month</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Repeat this row as needed -->
+                                            <tr>
+                                                <td>01</td>
+                                                <td>Spices</td>
+                                                <td>15-05-2025</td>
+                                                <td>Spices</td>
+                                                <td>21542</td>
+                                                <td>Ashok Kumar</td>
+                                                <td>HDFC Bank</td>
+                                                <td>99999 99999</td>
+                                                <td>₹500</td>
+                                                <td>150kg</td>
+                                                <td class="action-icons">
+                                                    <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-plus-circle text-primary"></i></label>
+                                                    <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-pencil-square text-warning"></i></label>
+                                                    <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-trash text-danger"></i></label>
+                                                </td>
+                                            </tr>
+                                            <!-- Duplicate above row as per data -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="modal fade" id="addvendor" tabindex="-1" aria-labelledby="addvendorLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-xl">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h1 class="modal-title fs-5" id="addvendorLabel">Add Vendor</h1>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form>
+                                                    <div class="row mb-3">
+                                                        <label for="provisionDetails" class="col-sm-2 col-form-label">Provision Details</label>
+                                                        <div class="col-sm-4">
+                                                            <select class="form-select" id="provisionDetails">
+                                                                <option selected>Select</option>
+                                                                <option>Ratio</option>
+                                                                <option>Perishable</option>
+                                                                <option>Oil / Ghee</option>
+                                                                <option>Milk</option>
+                                                                <option>Egg</option>
+                                                                <!-- Add options here -->
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="provisionName" class="col-sm-2 col-form-label">Provision Name</label>
+                                                        <div class="col-sm-4">
+                                                            <select class="form-select" id="provisionName">
+                                                                <option selected>Select</option>
+                                                                <!-- Add options here -->
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="vendorName" class="col-sm-2 col-form-label">Vendor Name</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="text" class="form-control" id="vendorName" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="agencyName" class="col-sm-2 col-form-label">Name of the Agency</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="text" class="form-control" id="agencyName" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="bankAccount" class="col-sm-2 col-form-label">Bank A/c No</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="text" class="form-control" id="bankAccount" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="ifscCode" class="col-sm-2 col-form-label">IFSC Code</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Vendor Contact</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Max Suppliable Quantity</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Cost of the Quantity (in Kg/Litre)</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Dist Collector Order/ Circular Upload</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="file" class="form-control" id="ifscCode" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Vendor Document Upload</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="file" class="form-control" id="ifscCode" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <div class="col-sm-12 text-center">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="button" class="btn btn-primary">Submit</button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Enter OTP</label>
+                                                        <div class="col-sm-4">
+                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <!-- <div class="modal-footer">
+                                               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                               <button type="button" class="btn btn-primary">Submit</button>
+                                               </div> -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="perishablee2" class="tab-pane fade">
+                            </div>
+                            <div id="rice2" class="tab-pane fade">
+                            </div>
+                            <div id="cleaning2" class="tab-pane fade">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
