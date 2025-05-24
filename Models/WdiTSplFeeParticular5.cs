@@ -1,0 +1,27 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace tsmess.Models;
+
+public partial class WdiTSplFeeParticular5
+{
+    public int FeeId { get; set; }
+
+    public string FeeName { get; set; } = null!;
+
+    public decimal Amount { get; set; }
+
+    public int CategoryId { get; set; }
+
+    public long AcademicYearId { get; set; }
+
+    public long PartnerId { get; set; }
+
+    public DateTime CreatedDate { get; set; }
+
+    public string CreatedBy { get; set; } = null!;
+
+    public long TaxConfigMid { get; set; }
+
+    public string TaxInclorExcl { get; set; } = null!;
+}

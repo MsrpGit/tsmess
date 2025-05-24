@@ -162,6 +162,8 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<ImInsuranceMaster> ImInsuranceMasters { get; set; }
 
+    public virtual DbSet<ImInventoryTransaction> ImInventoryTransactions { get; set; }
+
     public virtual DbSet<ImIssueItemDetail> ImIssueItemDetails { get; set; }
 
     public virtual DbSet<ImIssueMaster> ImIssueMasters { get; set; }
@@ -3584,6 +3586,16 @@ public partial class ApplicationDbContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasDefaultValue("Active");
+        });
+
+        modelBuilder.Entity<ImInventoryTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__IM_Inven__3214EC07A9CB5B9C");
+
+            entity.ToTable("IM_InventoryTransaction");
+
+            entity.Property(e => e.ExpiryDate).HasColumnType("datetime");
+            entity.Property(e => e.ReceivedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<ImIssueItemDetail>(entity =>

@@ -4,6 +4,7 @@
     Layout = null;
 }
 
+
 <div class="row">
     <!-- Card Template Start -->
     <div class="col-md-4">
@@ -111,81 +112,82 @@
                     <h1 class="modal-title fs-5" id="apLabel">Add Provision</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>S.No</th>
-                                <th>Items</th>
-                                <th>Quantity Present</th>
-                                <th>Vendor</th>
-                                <th>Received Date</th>
-                                <th>Qty. Received</th>
-                                <th>Expiry Date<br><small>(3 Months Checked)</small></th>
-                                <th>Quality</th>
-                                <th>Action</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>01</td>
-                                <td>
-                                    <input type="text" class="form-control" placeholder="Search" list="itemList">
-                                    <datalist id="itemList">
-                                        <!-- Options will be dynamically populated -->
-                                    </datalist>
-                                </td>
-
-                                <td><input type="text" id="quantityPresent" class="form-control" value="0" disabled></td>
-                                <td>
-                                    <select class="form-select">
-                                        <option>--Select Vendor--</option>
-                                        @if (Model.Vendors != null && Model.Vendors.Any())
-                                        {
-                                            @foreach (var vendor in Model.Vendors)
+                <form id="addInventoryForm" method="post" asp-page-handler="AddInventory">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>S.No</th>
+                                    <th>Items</th>
+                                    <th>Quantity Present</th>
+                                    <th>Vendor</th>
+                                    <th>Received Date</th>
+                                    <th>Qty. Received</th>
+                                    <th>Expiry Date<br><small>(3 Months Checked)</small></th>
+                                    <th>Quality</th>
+                                    <th>Action</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>01</td>
+                                    <td>
+                                        <input type="text" value="" class="form-control" placeholder="Search" list="itemList">
+                                        <datalist id="itemList">
+                                            <!-- Options will be dynamically populated -->
+                                        </datalist>
+                                        <input type="hidden" id="hiddenItemId" asp-for="ItemId" />
+                                    </td>
+                                    <td><input type="text" id="quantityPresent" class="form-control" asp-for="QuantityPresent" readonly></td>
+                                    <td>
+                                        <select class="form-select" asp-for="VendorId">
+                                            <option>--Select Vendor--</option>
+                                            @if (Model.Vendors != null && Model.Vendors.Any())
                                             {
-                                                <option value="@vendor.SupplierId">@vendor.SupplierName</option>
+                                                @foreach (var vendor in Model.Vendors)
+                                                {
+                                                    <option value="@vendor.SupplierId">@vendor.SupplierName</option>
+                                                }
                                             }
-                                        }
-                                    </select>
-
-
-                                </td>
-                                <td><input type="date" class="form-control"></td>
-                                <td><input type="text" class="form-control" value="60"></td>
-                                <td><input type="date" class="form-control"></td>
-                                <td class="text-start">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="adulteration">
-                                        <label class="form-check-label" for="adulteration">No Adulteration</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="smell">
-                                        <label class="form-check-label" for="smell">No Foul Smell</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="insects">
-                                        <label class="form-check-label" for="insects">No Insects</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="tampering">
-                                        <label class="form-check-label" for="tampering">No Tampering</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="packing">
-                                        <label class="form-check-label" for="packing">Not Cleanly Packed</label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button class="btn btn-accept mb-1">Accept</button><br>
-                                    <button class="btn btn-reject">Reject</button>
-                                </td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                                        </select>
+                                    </td>
+                                    <td><input type="date" class="form-control" asp-for="ReceivedDate"></td>
+                                    <td><input type="text" class="form-control" asp-for="QuantityReceived"></td>
+                                    <td><input type="date" class="form-control" asp-for="ExpiryDate"></td>
+                                    <td class="text-start">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NoAdulteration">
+                                            <label class="form-check-label">No Adulteration</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NoFoulSmell">
+                                            <label class="form-check-label">No Foul Smell</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NoInsects">
+                                            <label class="form-check-label">No Insects</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NoTampering">
+                                            <label class="form-check-label">No Tampering</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NotCleanlyPacked">
+                                            <label class="form-check-label">Not Cleanly Packed</label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button id="Accept" type="submit" class="btn btn-accept mb-1">Accept</button><br>
+                                        <button type="button" class="btn btn-reject">Reject</button>
+                                    </td>
+                                    <td><input type="text" class="form-control" asp-for="Remarks"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -263,4 +265,6 @@
             </div>
         </div>
     </div>
+    <div id="successMessage" class="alert alert-success d-none">Inventory added successfully.</div>
+
 </div>

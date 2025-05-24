@@ -1,10 +1,13 @@
 ﻿@page
-@model IndexModel
+@* @model IndexModel *@
+@model tsmess.Pages.Principal_Dashboard.IndexModel
 @{
     ViewData["Title"] = "Home page";
 }
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script src="js/script.js"></script>
 <script>
     const profileIcon = document.querySelector('img[src="img/profile_icon.png"]');
@@ -42,13 +45,14 @@
 
 
     document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("v-pills-messages-tab").addEventListener("click", function () {
+        document.getElementById("v-pills-messages-tab").addEventListener("shown.bs.tab", function () {
             fetch('/PrincipalDashboard/InventoryManagement')
                 .then(response => response.text())
                 .then(html => {
                     document.getElementById("inventoryContent").innerHTML = html;
                     const addItemButtons = document.querySelectorAll(".add-item-btn");
                     const itemList = document.getElementById("itemList");
+                    const hiddenItemIdInput = document.getElementById("hiddenItemId");
 
                     addItemButtons.forEach(button => {
                         button.addEventListener("click", function () {
@@ -68,6 +72,7 @@
                                         option.value = item.itemName; // Assuming the item has a 'name' property
                                         option.setAttribute("data-id", item.itemId);
                                         itemList.appendChild(option);
+
                                     });
                                 })
                                 .catch(err => {
@@ -84,6 +89,8 @@
                         if (matchedOption) {
                             const itemId = matchedOption.getAttribute("data-id");
                             if (itemId) {
+                                // Set the hidden input field's value to the selected item's ItemId
+                                hiddenItemIdInput.value = itemId;
                                 // Fetch the stock value for the selected item
                                 fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
                                     .then(response => {
@@ -104,37 +111,30 @@
                         }
                     });
 
-                    // const itemSearch = document.querySelector("input[list='itemList']");
-                    // const quantityPresent = document.getElementById("quantityPresent");
-
-                    // itemSearch.addEventListener("input", function () {
-                    //     const itemName = itemSearch.value;
-
-                    //     // Fetch the stock value for the selected item
-                    //     fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemName=${encodeURIComponent(itemName)}`)
-                    //         .then(response => {
-                    //             if (!response.ok) {
-                    //                 throw new Error(`HTTP error! Status: ${response.status}`);
-                    //             }
-                    //             return response.json();
-                    //         })
-                    //         .then(data => {
-                    //             // Populate the Quantity Present field
-                    //             quantityPresent.value = data.Quantity || "0"; // Default to 0 if no stock is found
-                    //         })
-                    //         .catch(err => {
-                    //             console.error("Error fetching item stock:", err);
-                    //             quantityPresent.value = "Error";
-                    //         });
-                    // });
                 })
                 .catch(err => {
                     document.getElementById("inventoryContent").innerHTML = "<p>Error loading content.</p>";
                     console.error(err);
                 });
         });
-    });
 
+        var tabId = document.getElementById("selectedTab").value;
+        if (tabId) {
+            var triggerEl = document.querySelector(`button[data-bs-target="#${tabId}"]`);
+            if (triggerEl) {
+                var tab = new bootstrap.Tab(triggerEl);
+                tab.show();
+                
+            }
+        }
+
+        // Optionally set this on click of tabs so the form knows what tab is active
+        document.querySelectorAll('.nav-link').forEach(button => {
+            button.addEventListener('click', function () {
+                document.getElementById("ActiveTab").value = this.getAttribute("data-bs-target").substring(1);
+            });
+        });
+    });
 
 </script>
 <div class="bg-white mt-2 py-2">
@@ -939,3 +939,5 @@
         </div>
     </div>
 </div>
+
+<input type="hidden" id="selectedTab" asp-for="SelectedTab" />

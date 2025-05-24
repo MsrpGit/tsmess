@@ -1,0 +1,15 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace tsmess.Models;
+
+public partial class WdiMLeaveMaster3
+{
+    public long LeaveId { get; set; }
+
+    public DateTime? LeaveDate { get; set; }
+
+    public string? LeaveDescription { get; set; }
+
+    public long AcademicYearId { get; set; }
+}

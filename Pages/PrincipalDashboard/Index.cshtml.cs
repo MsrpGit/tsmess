@@ -5,8 +5,14 @@ namespace tsmess.Pages.Principal_Dashboard
 {
     public class IndexModel : PageModel
     {
-        public void OnGet()
+        [BindProperty]
+        public string SelectedTab { set; get; } = "v-pills-home";
+        public void OnGet(string tab)
         {
+            if (!string.IsNullOrEmpty(tab))
+            {
+                SelectedTab = tab;
+            }
         }
     }
 }
