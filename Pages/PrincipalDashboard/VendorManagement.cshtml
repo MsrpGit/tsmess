@@ -1,0 +1,248 @@
+﻿@page
+@model tsmess.Pages.PrincipalDashboard.VendorManagementModel
+@{
+    Layout = null;
+}
+<div class="row">
+    <div class="col-12">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#provision2">Add Vendor</a>
+            </li>
+            @*  <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#perishablee2">Delete Vendor</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#rice2">Edit Vendor</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#cleaning2">Edit Cost</a>
+            </li> *@
+        </ul>
+        <div class="tab-content">
+            <div id="provision2" class="tab-pane fade show active">
+                <div class="date-filters justify-content-end">
+                    <button class="btn btn-outline-secondary"><img src="img/print_icon.png"></button>
+                    <button class="btn btn-outline-secondary"><img src="img/download_icon.png"></button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered text-center align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>S.No</th>
+                                <th>Vendor Type</th>
+                                <th>Vendor Name</th>
+                                <th>Bank Details</th>
+                                <th>IFSC Code</th>
+                                <th>Vendor Contact</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int serial = 1;
+                                foreach (var vendor in Model.vendors)
+                                {
+                                    <tr>
+                                        <td class="text-start">@serial</td>
+                                        <td class="text-start">@vendor.VendorType</td>
+                                        <td class="text-start">@vendor.VendorName</td>
+                                        <td class="text-start">@vendor.VendorBankAccountNo</td>
+                                        <td class="text-start">@vendor.VendorBankIFSC</td>
+                                        <td class="text-start">@vendor.VendorContact</td>
+                                        <td class="action-icons">
+                                            <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-plus-circle text-primary"></i></label>
+                                            <form method="post" asp-page-handler="DeleteVendor" style="display:inline;">
+                                                <input type="hidden" name="vendorId" value="@vendor.VendorId" />
+                                                <button type="submit" class="btn btn-link p-0 m-0" title="Delete">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    serial++;
+                                }
+                            }
+                        </tbody>
+
+                        @* <tbody>
+                        <!-- Repeat this row as needed -->
+                        <tr>
+                        <td>01</td>
+                        <td>Spices</td>
+                        <td>15-05-2025</td>
+                        <td>Spices</td>
+                        <td>21542</td>
+                        <td>Ashok Kumar</td>
+                        <td>HDFC Bank</td>
+                        <td>99999 99999</td>
+                        <td>₹500</td>
+                        <td>150kg</td>
+                        <td class="action-icons">
+                        <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-plus-circle text-primary"></i></label>
+                        <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-pencil-square text-warning"></i></label>
+                        <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-trash text-danger"></i></label>
+                        </td>
+                        </tr>
+                        <!-- Duplicate above row as per data -->
+                        </tbody> *@
+                    </table>
+                </div>
+                <div class="modal fade" id="addvendor" tabindex="-1" aria-labelledby="addvendorLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="addvendorLabel">Add Vendor</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="vendorModal" method="post" enctype="multipart/form-data" asp-page-handler="AddVendor" onsubmit="return validateOTP()">
+                                    @* <div class="row mb-3">
+                                    <label for="provisionDetails" class="col-sm-2 col-form-label">Provision Details</label>
+                                    <div class="col-sm-4">
+                                    <select class="form-select" id="provisionDetails">
+                                    <option selected>Select</option>
+                                    <option>Ratio</option>
+                                    <option>Perishable</option>
+                                    <option>Oil / Ghee</option>
+                                    <option>Milk</option>
+                                    <option>Egg</option>
+                                    <!-- Add options here -->
+                                    </select>
+                                    </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                    <label for="provisionName" class="col-sm-2 col-form-label">Provision Name</label>
+                                    <div class="col-sm-4">
+                                    <select class="form-select" id="provisionName">
+                                    <option selected>Select</option>
+                                    <!-- Add options here -->
+                                    </select>
+                                    </div>
+                                    </div> *@
+                                    <div class="row mb-3">
+                                        <label for="VendorType" class="col-sm-2 col-form-label">Vendor Type</label>
+                                        <div class="col-sm-4">
+                                            <select class="form-select" id="VendorType" asp-for="vendor.VendorType">
+                                                <option selected>local</option>
+                                                <option>firm</option>
+                                                <!-- Add options here -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <label for="vendorName" class="col-sm-2 col-form-label">Vendor Name</label>
+                                        <div class="col-sm-4">
+                                            <input type="text" class="form-control" id="vendorName" placeholder="" asp-for="vendor.VendorName">
+                                        </div>
+                                    </div>
+                                    @*  <div class="row mb-3">
+                                    <label for="agencyName" class="col-sm-2 col-form-label">Name of the Agency</label>
+                                    <div class="col-sm-4">
+                                    <input type="text" class="form-control" id="agencyName" placeholder="" >
+                                    </div>
+                                    </div> *@
+                                    <div class="row mb-3">
+                                        <label for="bankAccount" class="col-sm-2 col-form-label">Bank A/c No</label>
+                                        <div class="col-sm-4">
+                                            <input type="text" class="form-control" id="bankAccount" placeholder="" asp-for="vendor.VendorBankAccountNo">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <label for="ifscCode" class="col-sm-2 col-form-label">IFSC Code</label>
+                                        <div class="col-sm-4">
+                                            <input type="text" class="form-control" id="ifscCode" placeholder="" asp-for="vendor.VendorBankIFSC">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <label for="ifscCode" class="col-sm-2 col-form-label">Vendor Contact</label>
+                                        <div class="col-sm-4">
+                                            <input type="text" class="form-control" id="contact" placeholder="" asp-for="vendor.VendorContact">
+                                        </div>
+                                    </div>
+                                    @*  <div class="row mb-3">
+                                    <label for="ifscCode" class="col-sm-2 col-form-label">Max Suppliable Quantity</label>
+                                    <div class="col-sm-4">
+                                    <input type="text" class="form-control" id="MaxSuppliableQty" placeholder="" >
+                                    </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                    <label for="ifscCode" class="col-sm-2 col-form-label">Cost of the Quantity (in Kg/Litre)</label>
+                                    <div class="col-sm-4">
+                                    <input type="text" class="form-control" id="ifscCode" placeholder="">
+                                    </div>
+                                    </div> *@
+                                    <div class="row mb-3">
+                                        <label for="circularUpload" class="col-sm-2 col-form-label">Dist Collector Order/ Circular Upload</label>
+                                        <div class="col-sm-4">
+                                            <input type="file" class="form-control" id="circularUpload" placeholder="" asp-for="CircularUpload"
+                                                   accept=".jpg,.jpeg,.png,.gif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <label for="vendorDocs" class="col-sm-2 col-form-label">Vendor Document Upload</label>
+                                        <div class="col-sm-4">
+                                            <input type="file" class="form-control" id="vendorDocs" placeholder="" asp-for="VendorDocs"
+                                                   accept=".jpg,.jpeg,.png,.gif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <label for="otp" class="col-sm-2 col-form-label">Enter OTP</label>
+                                        <div class="col-sm-4">
+                                            <input type="text" class="form-control" id="otp" placeholder="">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-12 text-center">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Submit</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="perishablee2" class="tab-pane fade">
+            </div>
+            <div id="rice2" class="tab-pane fade">
+            </div>
+            <div id="cleaning2" class="tab-pane fade">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function deleteVendor(element) {
+        var vendorId = element.getAttribute('data-vendorid');
+        if (confirm('Are you sure you want to delete this vendor?')) {
+            document.getElementById('deleteVendorId').value = vendorId;
+            document.getElementById('deleteVendorForm').submit();
+        }
+    }
+
+    function validateOTP() {
+        var otpInput = document.getElementById("otp");
+        var otpValue = otpInput.value.trim();
+
+        if (otpValue === "") {
+            alert("Please enter the OTP.");
+            otpInput.focus();
+            return false;
+        }
+
+        // Optional: check if OTP is 6 digits and numeric
+        var otpRegex = /^\d{6}$/;
+        if (!otpRegex.test(otpValue)) {
+            alert("Please enter a valid 6-digit OTP.");
+            otpInput.focus();
+            return false;
+        }
+
+        return true; // allow form submission
+    }
+
+
+</script>

@@ -5,6 +5,10 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tsmess", "tsmess.csproj", "{192A233C-573A-4AC8-93E5-87F7CE676BEA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CampusDAO", "..\DL\CampusDAO.csproj", "{341DAF3B-2CE3-4AE1-8889-4B6BBF939BD5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdusyncSecurity", "..\EdusyncSecurity\EdusyncSecurity.csproj", "{8B96CDE8-5043-4C60-927C-AFBC74702173}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{192A233C-573A-4AC8-93E5-87F7CE676BEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{192A233C-573A-4AC8-93E5-87F7CE676BEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{192A233C-573A-4AC8-93E5-87F7CE676BEA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{341DAF3B-2CE3-4AE1-8889-4B6BBF939BD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{341DAF3B-2CE3-4AE1-8889-4B6BBF939BD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{341DAF3B-2CE3-4AE1-8889-4B6BBF939BD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{341DAF3B-2CE3-4AE1-8889-4B6BBF939BD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B96CDE8-5043-4C60-927C-AFBC74702173}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B96CDE8-5043-4C60-927C-AFBC74702173}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B96CDE8-5043-4C60-927C-AFBC74702173}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B96CDE8-5043-4C60-927C-AFBC74702173}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

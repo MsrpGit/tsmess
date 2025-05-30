@@ -7,70 +7,33 @@
 
 <div class="row">
     <!-- Card Template Start -->
-    <div class="col-md-4">
-        <div class="cardcus">
-            <h6>Dry Provision</h6>
-            <div>
-                <button class="btn btn-sm btn-customcus me-2 modalpopup add-item-btn" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
-                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+    @if (Model.ItemTypes != null && Model.ItemTypes.Any())
+    {
+
+        foreach (var item in Model.ItemTypes)
+        {
+            <div class="col-md-4">
+                <div class="cardcus">
+                    <h6>@item.Value</h6>
+                    <div>
+                        <button data-itemType="@item.Key" class="btn btn-sm btn-customcus me-2 modalpopup add-item-btn" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                        <button data-itemType="@item.Key" class="btn btn-sm btn-customcus modalpopup delete-item-btn" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-    <!-- Repeat this block for each item -->
-    <div class="col-md-4">
-        <div class="cardcus">
-            <h6>Perishable</h6>
-            <div>
-                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
-                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="cardcus">
-            <h6>Rice</h6>
-            <div>
-                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
-                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="cardcus">
-            <h6>Cleaning Agents</h6>
-            <div>
-                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
-                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="cardcus">
-            <h6>Equipment / Utensils</h6>
-            <div>
-                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
-                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="cardcus">
-            <h6>Ticket</h6>
-            <div>
-                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
-                <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
-            </div>
-        </div>
-    </div>
+        }
+    }
+
     <div class="col-md-4">
         <div class="cardcus">
             <h6>From Other School</h6>
             <div>
-                <button class="btn btn-sm btn-customcus me-2 modalpopup" data-bs-toggle="modal" data-bs-target="#apModal">Add</button>
+                <button data-itemType="FromOtherSchool" class="btn btn-sm btn-customcus me-2 modalpopup add-item-btn" data-bs-toggle="modal" data-bs-target="#fosModal">Add</button>
                 <button class="btn btn-sm btn-customcus modalpopup" data-bs-toggle="modal" data-bs-target="#dpModal">Delete</button>
             </div>
         </div>
     </div>
+
     <div class="col-md-12">
         <h6 class="fw-bold">Items Nearing Expiry</h6>
         <table class="table">
@@ -83,25 +46,46 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>1.</td>
-                    <td>Pulses</td>
-                    <td>Kandi Pappu</td>
-                    <td>10 days</td>
+                @if (Model.ItemsNearingExpiry != null && Model.ItemsNearingExpiry.Any())
+                {
+                    int serialNumber = 1;
+                    foreach (var item in Model.ItemsNearingExpiry)
+                    {
+                        <tr>
+                            <td>@serialNumber</td>
+                            <td>@item.Category</td>
+                            <td>@item.ItemName</td>
+                            <td>@item.DaysToExpiry days</td>
+                        </tr>
+                        serialNumber++;
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center">No items nearing expiry.</td>
+                    </tr>
+                }
+                @*  <tr>
+                <td>1.</td>
+                <td>Pulses</td>
+                <td>Kandi Pappu</td>
+                <td>10 days</td>
                 </tr>
                 <tr>
-                    <td>2.</td>
-                    <td>Pulses</td>
-                    <td>Pesarlu</td>
-                    <td>11 days</td>
+                <td>2.</td>
+                <td>Pulses</td>
+                <td>Pesarlu</td>
+                <td>11 days</td>
                 </tr>
                 <tr>
-                    <td>3.</td>
-                    <td>Pulses</td>
-                    <td>Putnalu</td>
-                    <td>13 days</td>
-                </tr>
+                <td>3.</td>
+                <td>Pulses</td>
+                <td>Putnalu</td>
+                <td>13 days</td>
+                </tr> *@
             </tbody>
+
         </table>
     </div>
     <!-- Card Template End -->
@@ -109,7 +93,7 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="apLabel">Add Provision</h1>
+                    @* <h1 class="modal-title fs-5" id="apLabel">Add Provision</h1> *@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="addInventoryForm" method="post" asp-page-handler="AddInventory">
@@ -140,7 +124,7 @@
                                         </datalist>
                                         <input type="hidden" id="hiddenItemId" asp-for="ItemId" />
                                     </td>
-                                    <td><input type="text" id="quantityPresent" class="form-control" asp-for="QuantityPresent" readonly></td>
+                                    <td><input type="text" id="quantityPresent" class="form-control quantityPresent" asp-for="QuantityPresent" readonly></td>
                                     <td>
                                         <select class="form-select" asp-for="VendorId">
                                             <option>--Select Vendor--</option>
@@ -149,6 +133,222 @@
                                                 @foreach (var vendor in Model.Vendors)
                                                 {
                                                     <option value="@vendor.SupplierId">@vendor.SupplierName</option>
+                                                }
+                                            }
+                                        </select>
+                                    </td>
+                                    <td><input type="date" class="form-control" asp-for="ReceivedDate"></td>
+                                    <td>
+                                        <input type="text" class="form-control" asp-for="QuantityReceived">
+                                        <span asp-validation-for="QuantityReceived" class="text-danger"></span>
+                                    </td>
+                                    <td><input type="date" class="form-control" asp-for="ExpiryDate"></td>
+                                    <td class="text-start">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NoAdulteration">
+                                            <label class="form-check-label">No Adulteration</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NoFoulSmell">
+                                            <label class="form-check-label">No Foul Smell</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NoInsects">
+                                            <label class="form-check-label">No Insects</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NoTampering">
+                                            <label class="form-check-label">No Tampering</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" asp-for="NotCleanlyPacked">
+                                            <label class="form-check-label">Not Cleanly Packed</label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button data-isaccepted="true" id="Accept" type="submit" class="btn btn-accept mb-1">Accept</button><br>
+                                        <button data-isaccepted="false" type="submit" class="btn btn-reject">Reject</button>
+                                    </td>
+                                    <td><input type="text" class="form-control" asp-for="Remarks"></td>
+                                    <input type="hidden" id="IsAcceptedAP" name="IsAccepted" asp-for="IsAccepted" />
+                                    @* <input type="hidden" value="test" name="pName" asp-for="PartnerName" />*@
+                                    <input type="hidden" id="ItemType" name="ItemType" asp-for="ItemType" />
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="dpModal" tabindex="-1" aria-labelledby="dpLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    @*  <h1 class="modal-title fs-5" id="dpLabel">Delete Provision</h1> *@
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="DeleteModal" method="post" asp-page-handler="DeleteInventory">
+                    <div class="modal-body">
+                        <table class="table table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th>S.No</th>
+                                    <th>Items</th>
+                                    <th>Qty Present</th>
+                                    <th>Qty to be Deleted</th>
+                                    <th>Reason for Deletion</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>01</td>
+                                    <td>
+                                        <input type="text" value="" class="form-control" placeholder="Search" list="itemDeleteList">
+                                        <datalist id="itemDeleteList">
+                                            <!-- Options will be dynamically populated -->
+                                        </datalist>
+                                        <input type="hidden" id="hiddenItemId" asp-for="ItemId" />
+                                    </td>
+                                    <td><input type="text" id="quantityPresent" class="form-control quantityPresent" asp-for="QuantityPresent" readonly></td>
+                                    <td><input text class="form-control" asp-for="QuantityReceived"></td>
+                                    <td><input type="text" class="form-control" asp-for="Remarks"></td>
+                                    <td><button type="submit" class="confirm-btn">Confirm</button></td>
+                                    <input type="hidden" id="ItemType" name="ItemType" asp-for="ItemType" />
+                                    @*  <td class="text-start" aria-hidden="true">
+                                    <div class="form-check">
+                                    <input class="form-check-input" type="checkbox">
+                                    <label class="form-check-label">No Adulteration</label>
+                                    </div>
+                                    <div class="form-check">
+                                    <input class="form-check-input" type="checkbox">
+                                    <label class="form-check-label">No Foul Smell</label>
+                                    </div>
+                                    <div class="form-check">
+                                    <input class="form-check-input" type="checkbox">
+                                    <label class="form-check-label">No Insects</label>
+                                    </div>
+                                    <div class="form-check">
+                                    <input class="form-check-input" type="checkbox">
+                                    <label class="form-check-label">No Tampering</label>
+                                    </div>
+                                    <div class="form-check">
+                                    <input class="form-check-input" type="checkbox">
+                                    <label class="form-check-label">Not Cleanly Packed</label>
+                                    </div>
+                                    </td> *@
+                                </tr>
+
+
+                                @*  <tr>
+                                <td>02</td>
+                                <td>Fruits</td>
+                                <td>100</td>
+                                <td><input type="number" value="100" class="form-control"></td>
+                                <td>Dolor sit consectetur adipiscing dolor sit consectetur adipiscing drywry4</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                                </tr>
+                                <tr>
+                                <td>03</td>
+                                <td>Fruits</td>
+                                <td>30</td>
+                                <td><input type="number" value="10" class="form-control"></td>
+                                <td>consectetur adipiscing dolor sit consectetur adipiscing</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                                </tr>
+                                <tr>
+                                <td>04</td>
+                                <td>Fruits</td>
+                                <td>50</td>
+                                <td><input type="number" value="10" class="form-control"></td>
+                                <td>Sit consectetur adipiscing dolor sit consectetur</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                                </tr>
+                                <tr>
+                                <td>05</td>
+                                <td>Fruits</td>
+                                <td>20</td>
+                                <td><input type="number" value="5" class="form-control"></td>
+                                <td>Dolor sit consectetur adipiscing dipiscing drywry4</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                                </tr>
+                                <tr>
+                                <td>06</td>
+                                <td>Fruits</td>
+                                <td>20</td>
+                                <td><input type="number" value="3" class="form-control"></td>
+                                <td>Dolor sit consectetur adipiscing dolor sit consectetur adipiscing drywry4</td>
+                                <td><button class="confirm-btn">Confirm</button></td>
+                                </tr> *@
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @* @if (TempData["SuccessMessage"] != null)
+    {
+    <div id="successMessage" class="alert alert-success">
+    @TempData["SuccessMessage"]
+    </div>
+    } *@
+    <div class="modal fade" id="fosModal" tabindex="-1" aria-labelledby="apLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    @* <h1 class="modal-title fs-5" id="apLabel">Add Provision</h1> *@
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="addInventoryFOSForm" method="post" asp-page-handler="AddSchoolInventory">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Item type</th>
+                                    <th>Items</th>
+                                    <th>Quantity Present</th>
+                                    <th>School list</th>
+                                    <th>Received Date</th>
+                                    <th>Qty. Received</th>
+                                    <th>Expiry Date<br><small>(3 Months Checked)</small></th>
+                                    <th>Quality</th>
+                                    <th>Action</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <select id="itemTypeDropdown" class="form-select" asp-for="ItemType">
+                                            <option>--Select ItemType--</option>
+                                            @if (Model.ItemTypes != null && Model.ItemTypes.Any())
+                                            {
+                                                foreach (var item in Model.ItemTypes)
+                                                {
+                                                    <option value="@item.Key">@item.Value</option>
+                                                }
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" value="" class="form-control" placeholder="Search" list="itemList">
+                                        <datalist id="itemList">
+                                            <!-- Options will be dynamically populated -->
+                                        </datalist>
+                                        <input type="hidden" id="hiddenItemId" asp-for="ItemId" />
+                                    </td>
+                                    <td><input type="text" id="quantityPresent" class="form-control quantityPresent" asp-for="QuantityPresent" readonly></td>
+                                    <td>
+                                        <select class="form-select" asp-for="PartnerName">
+                                            <option>--Select school--</option>
+                                            @if (Model.Partners != null && Model.Partners.Any())
+                                            {
+                                                @foreach (var partner in Model.Partners)
+                                                {
+                                                    <option value="@partner.PartnerId">@partner.PartnerName</option>
                                                 }
                                             }
                                         </select>
@@ -179,10 +379,12 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <button id="Accept" type="submit" class="btn btn-accept mb-1">Accept</button><br>
-                                        <button type="button" class="btn btn-reject">Reject</button>
+                                        <button data-isaccepted="true" id="Accept" type="submit" class="btn btn-accept mb-1">Accept</button><br>
+                                        <button data-isaccepted="false" type="submit" class="btn btn-reject">Reject</button>
                                     </td>
                                     <td><input type="text" class="form-control" asp-for="Remarks"></td>
+                                    <input type="hidden" id="IsAcceptedFOS" name="IsAccepted" asp-for="IsAccepted" />
+                                    <input type="hidden" id="ItemType" name="ItemType" asp-for="ItemType" />
                                 </tr>
                             </tbody>
                         </table>
@@ -191,80 +393,5 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="dpModal" tabindex="-1" aria-labelledby="dpLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="dpLabel">Delete Provision</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <table class="table table-bordered align-middle">
-                        <thead>
-                            <tr>
-                                <th>S.No</th>
-                                <th>Items</th>
-                                <th>Qty Present</th>
-                                <th>Qty to be Deleted</th>
-                                <th>Reason for Deletion</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>01</td>
-                                <td><input type="text" class="form-control" placeholder="Search"></td>
-                                <td>50</td>
-                                <td><input type="number" value="20" class="form-control"></td>
-                                <td>Dolor sit consectetur adipiscing dolor sit consectetur adip</td>
-                                <td><button class="confirm-btn">Confirm</button></td>
-                            </tr>
-                            <tr>
-                                <td>02</td>
-                                <td>Fruits</td>
-                                <td>100</td>
-                                <td><input type="number" value="100" class="form-control"></td>
-                                <td>Dolor sit consectetur adipiscing dolor sit consectetur adipiscing drywry4</td>
-                                <td><button class="confirm-btn">Confirm</button></td>
-                            </tr>
-                            <tr>
-                                <td>03</td>
-                                <td>Fruits</td>
-                                <td>30</td>
-                                <td><input type="number" value="10" class="form-control"></td>
-                                <td>consectetur adipiscing dolor sit consectetur adipiscing</td>
-                                <td><button class="confirm-btn">Confirm</button></td>
-                            </tr>
-                            <tr>
-                                <td>04</td>
-                                <td>Fruits</td>
-                                <td>50</td>
-                                <td><input type="number" value="10" class="form-control"></td>
-                                <td>Sit consectetur adipiscing dolor sit consectetur</td>
-                                <td><button class="confirm-btn">Confirm</button></td>
-                            </tr>
-                            <tr>
-                                <td>05</td>
-                                <td>Fruits</td>
-                                <td>20</td>
-                                <td><input type="number" value="5" class="form-control"></td>
-                                <td>Dolor sit consectetur adipiscing dipiscing drywry4</td>
-                                <td><button class="confirm-btn">Confirm</button></td>
-                            </tr>
-                            <tr>
-                                <td>06</td>
-                                <td>Fruits</td>
-                                <td>20</td>
-                                <td><input type="number" value="3" class="form-control"></td>
-                                <td>Dolor sit consectetur adipiscing dolor sit consectetur adipiscing drywry4</td>
-                                <td><button class="confirm-btn">Confirm</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div id="successMessage" class="alert alert-success d-none">Inventory added successfully.</div>
 
 </div>

@@ -3,6 +3,7 @@
 @model tsmess.Pages.Principal_Dashboard.IndexModel
 @{
     ViewData["Title"] = "Home page";
+    Layout = "_Layout";
 }
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -10,6 +11,13 @@
 
 <script src="js/script.js"></script>
 <script>
+    $(document).ready(function () {
+        // Re-validate the form when the modal is shown
+        $('#apModal').on('shown.bs.modal', function () {
+            $.validator.unobtrusive.parse('#addInventoryForm');
+        });
+    });
+
     const profileIcon = document.querySelector('img[src="img/profile_icon.png"]');
     const profileMenu = document.getElementById('profileMenu');
 
@@ -43,98 +51,431 @@
         }
     });
 
+    document.addEventListener("DOMContentLoaded", () => {
+        const inventoryTab = document.getElementById("v-pills-messages-tab");
+        const vendorTab = document.getElementById("v-pills-vm-tab");
 
-    document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("v-pills-messages-tab").addEventListener("shown.bs.tab", function () {
-            fetch('/PrincipalDashboard/InventoryManagement')
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById("inventoryContent").innerHTML = html;
-                    const addItemButtons = document.querySelectorAll(".add-item-btn");
-                    const itemList = document.getElementById("itemList");
-                    const hiddenItemIdInput = document.getElementById("hiddenItemId");
+        const fetchAndInject = async (url, targetId, callback) => {
+            try {
+                const res = await fetch(url);
+                const html = await res.text();
+                document.getElementById(targetId).innerHTML = html;
+                if (typeof callback === "function") callback();
+            } catch (err) {
+                console.error("Failed to load content:", err);
+            }
+        };
 
-                    addItemButtons.forEach(button => {
-                        button.addEventListener("click", function () {
-                            // Fetch items from the server
-                            fetch('/PrincipalDashboard/InventoryManagement?handler=GetItems')
-                                .then(response => {
-                                    if (!response.ok) {
-                                        throw new Error(`HTTP error! Status: ${response.status}`);
-                                    }
-                                    return response.json();
-                                })
-                                .then(items => {
-                                    // Populate the datalist with items
-                                    itemList.innerHTML = ""; // Clear existing options
-                                    items.forEach(item => {
-                                        const option = document.createElement("option");
-                                        option.value = item.itemName; // Assuming the item has a 'name' property
-                                        option.setAttribute("data-id", item.itemId);
-                                        itemList.appendChild(option);
+        const attachIsAcceptedHandler = (formId, hiddenInputId) => {
+            const form = document.getElementById(formId);
+            const hiddenInput = document.getElementById(hiddenInputId);
+            if (!form || !hiddenInput) return;
+            form.addEventListener("submit", (e) => {
+                const clicked = document.activeElement;
+                if (clicked?.hasAttribute("data-isaccepted")) {
+                    hiddenInput.value = clicked.getAttribute("data-isaccepted");
+                }
+            });
+        };
 
-                                    });
-                                })
-                                .catch(err => {
-                                    console.error("Error fetching items:", err);
+        const setupItemHandlers = (modal, listId, hiddenInputId, quantityClass, endpointPrefix) => {
+            const itemList = modal.querySelector(`datalist#${listId}`);
+            const itemSearch = modal.querySelector(`input[list='${listId}']`);
+            const hiddenInput = modal.querySelector(`input#${hiddenInputId}`);
+            const quantityInputs = modal.querySelectorAll(`input.${quantityClass}`);
+            const itemType = modal.querySelector("input#ItemType")?.value;
+
+            if (!itemType) return;
+
+            fetch(`${endpointPrefix}?handler=GetItems&itemType=${encodeURIComponent(itemType)}`)
+                .then(res => res.json())
+                .then(items => {
+                    itemList.innerHTML = items.map(i =>
+                        `<option value="${i.itemName}" data-id="${i.itemId}"></option>`
+                    ).join("");
+
+                    itemSearch.addEventListener("change", () => {
+                        const selected = [...itemList.options].find(opt => opt.value === itemSearch.value);
+                        if (selected) {
+                            const itemId = selected.getAttribute("data-id");
+                            hiddenInput.value = itemId;
+                            fetch(`${endpointPrefix}?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    quantityInputs.forEach(input => input.value = data.quantity || "0");
                                 });
-                        });
-                    });
-
-                    const itemSearch = document.querySelector("input[list='itemList']");
-                    itemSearch.addEventListener("change", function () {
-                        const inputValue = itemSearch.value;
-                        const matchedOption = [...itemList.options].find(opt => opt.value === inputValue);
-
-                        if (matchedOption) {
-                            const itemId = matchedOption.getAttribute("data-id");
-                            if (itemId) {
-                                // Set the hidden input field's value to the selected item's ItemId
-                                hiddenItemIdInput.value = itemId;
-                                // Fetch the stock value for the selected item
-                                fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
-                                    .then(response => {
-                                        if (!response.ok) {
-                                            throw new Error(`HTTP error! Status: ${response.status}`);
-                                        }
-                                        return response.json();
-                                    })
-                                    .then(data => {
-                                        // Populate the Quantity Present field
-                                        quantityPresent.value = data.quantity || "0"; // Default to 0 if no stock is found
-                                    })
-                                    .catch(err => {
-                                        console.error("Error fetching item stock:", err);
-                                        quantityPresent.value = "Error";
-                                    });
-                            }
                         }
                     });
-
                 })
-                .catch(err => {
-                    document.getElementById("inventoryContent").innerHTML = "<p>Error loading content.</p>";
-                    console.error(err);
-                });
-        });
+                .catch(err => console.error("Item loading failed", err));
+        };
 
-        var tabId = document.getElementById("selectedTab").value;
-        if (tabId) {
-            var triggerEl = document.querySelector(`button[data-bs-target="#${tabId}"]`);
-            if (triggerEl) {
-                var tab = new bootstrap.Tab(triggerEl);
-                tab.show();
-                
-            }
+        const setupModalTriggers = (selector, listId, hiddenInputId, quantityClass, endpointPrefix) => {
+            document.querySelectorAll(selector).forEach(button => {
+                button.addEventListener("click", () => {
+                    const modal = document.querySelector(button.getAttribute("data-bs-target"));
+                    modal.querySelector("input#ItemType").value = button.getAttribute("data-itemType");
+                    setupItemHandlers(modal, listId, hiddenInputId, quantityClass, endpointPrefix);
+                });
+            });
+        };
+
+        const onInventoryTabShown = () => {
+            fetchAndInject('/PrincipalDashboard/InventoryManagement', 'inventoryContent', () => {
+                setupModalTriggers(".add-item-btn", "itemList", "hiddenItemId", "quantityPresent", "/PrincipalDashboard/InventoryManagement");
+                setupModalTriggers(".delete-item-btn", "itemDeleteList", "hiddenItemId", "quantityPresent", "/PrincipalDashboard/InventoryManagement");
+
+                attachIsAcceptedHandler("addInventoryFOSForm", "IsAcceptedFOS");
+                attachIsAcceptedHandler("addInventoryForm", "IsAcceptedAP");
+                setupDynamicItemDropdown();
+            });
+        };
+
+        const setupDynamicItemDropdown = () => {
+            const dropdown = document.getElementById("itemTypeDropdown");
+            const itemList = document.querySelector("datalist#itemList");
+            const itemSearch = document.querySelector("input[list='itemList']");
+            const hiddenInput = document.querySelector("input#hiddenItemId");
+            const quantityInputs = document.querySelectorAll("input.quantityPresent");
+
+            if (!dropdown) return;
+
+            dropdown.addEventListener("change", () => {
+                const itemType = dropdown.value;
+                itemList.innerHTML = "";
+                itemSearch.value = "";
+                hiddenInput.value = "";
+                quantityInputs.forEach(input => input.value = "");
+
+                fetch(`/PrincipalDashboard/InventoryManagement?handler=GetItems&itemType=${encodeURIComponent(itemType)}`)
+                    .then(res => res.json())
+                    .then(items => {
+                        itemList.innerHTML = items.map(i =>
+                            `<option value="${i.itemName}" data-id="${i.itemId}"></option>`
+                        ).join("");
+                    });
+            });
+
+            itemSearch.addEventListener("change", () => {
+                const selected = [...itemList.options].find(opt => opt.value === itemSearch.value);
+                if (selected) {
+                    const itemId = selected.getAttribute("data-id");
+                    hiddenInput.value = itemId;
+                    fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            quantityInputs.forEach(input => input.value = data.quantity || "0");
+                        });
+                }
+            });
+        };
+
+        const onVendorTabShown = () => {
+            fetchAndInject('/PrincipalDashboard/VendorManagement', 'vendorContent', () => {
+                setupModalTriggers(".add-item-btn", "itemList", "hiddenItemId", "quantityPresent", "/PrincipalDashboard/InventoryManagement");
+            });
+        };
+
+        // Tab listeners
+        inventoryTab?.addEventListener("shown.bs.tab", onInventoryTabShown);
+        vendorTab?.addEventListener("shown.bs.tab", onVendorTabShown);
+
+        // Restore tab if preselected
+        const selectedTab = document.getElementById("selectedTab")?.value;
+        if (selectedTab) {
+            const triggerEl = document.querySelector(`button[data-bs-target="#${selectedTab}"]`);
+            if (triggerEl) new bootstrap.Tab(triggerEl).show();
         }
 
-        // Optionally set this on click of tabs so the form knows what tab is active
-        document.querySelectorAll('.nav-link').forEach(button => {
-            button.addEventListener('click', function () {
-                document.getElementById("ActiveTab").value = this.getAttribute("data-bs-target").substring(1);
+        // Save tab state on click
+        document.querySelectorAll('.nav-link').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.getElementById("ActiveTab").value = tab.getAttribute("data-bs-target").substring(1);
             });
         });
     });
+
+
+    // document.addEventListener("DOMContentLoaded", function () {
+    //     const inventoryTab = document.getElementById("v-pills-messages-tab");
+
+    //     const vendorTab = document.getElementById("v-pills-vm-tab");
+
+    //     if (inventoryTab) {
+    //         inventoryTab.addEventListener("shown.bs.tab", function () {
+    //             fetch('/PrincipalDashboard/InventoryManagement')
+    //                 .then(response => response.text())
+    //                 .then(html => {
+    //                     document.getElementById("inventoryContent").innerHTML = html;
+
+    //                     // Setup event handlers after loading HTML
+    //                     setupModalHandlers();
+    //                     loadItemsOnItemTypeChange();
+    //                     setupDleteModalHandlers();
+
+    //                     function attachIsAcceptedHandler(formId, hiddenInputId) {
+    //                         const form = document.getElementById(formId);
+    //                         const hiddenInput = document.getElementById(hiddenInputId);
+
+    //                         if (!form || !hiddenInput) return;
+
+    //                         form.addEventListener("submit", function (e) {
+    //                             const clickedButton = document.activeElement;
+    //                             if (clickedButton && clickedButton.hasAttribute("data-isaccepted")) {
+    //                                 hiddenInput.value = clickedButton.getAttribute("data-isaccepted");
+    //                             }
+    //                         });
+    //                     }
+
+    //                     // Attach for both forms
+    //                     attachIsAcceptedHandler("addInventoryFOSForm", "IsAcceptedFOS");
+    //                     attachIsAcceptedHandler("addInventoryForm", "IsAcceptedAP");
+    //                 });
+    //         });
+    //     }
+    //     if (vendorTab) {
+    //         vendorTab.addEventListener("shown.bs.tab", function () {
+    //             fetch('/PrincipalDashboard/VendorManagement')
+    //                 .then(response => response.text())
+    //                 .then(html => {
+    //                     document.getElementById("vendorContent").innerHTML = html;
+    //                     setupVendorModalHandlers();
+
+    //                 });
+    //         });
+    //     }
+
+    //     function setupDleteModalHandlers() {
+    //         document.querySelectorAll(".delete-item-btn").forEach(button => {
+    //             button.addEventListener("click", function () {
+    //                 const itemType = this.getAttribute("data-itemType");
+    //                 const modal = document.querySelector(this.getAttribute("data-bs-target"));
+    //                 const itemList = modal.querySelector("datalist#itemDeleteList");
+    //                 const hiddenItemIdInput = modal.querySelector("input#hiddenItemId");
+    //                 const quantityInputs = modal.querySelectorAll("input.quantityPresent");
+    //                 const hiddenItemType = modal.querySelector("input#ItemType");
+    //                 hiddenItemType.value = itemType; // Set the item type in the hidden input
+
+    //                 // Fetch and populate items for selected itemType
+    //                 fetch(`/PrincipalDashboard/InventoryManagement?handler=GetItems&itemType=${encodeURIComponent(itemType)}`)
+    //                     .then(res => res.json())
+    //                     .then(items => {
+    //                         itemList.innerHTML = "";
+    //                         items.forEach(item => {
+    //                             const option = document.createElement("option");
+    //                             option.value = item.itemName;
+    //                             option.setAttribute("data-id", item.itemId);
+    //                             itemList.appendChild(option);
+    //                         });
+
+    //                         // Handle item selection
+    //                         const itemSearch = modal.querySelector("input[list='itemDeleteList']");
+    //                         itemSearch.addEventListener("change", function () {
+    //                             const inputValue = this.value;
+    //                             const matchedOption = [...itemList.options].find(opt => opt.value === inputValue);
+
+    //                             if (matchedOption) {
+    //                                 const itemId = matchedOption.getAttribute("data-id");
+    //                                 hiddenItemIdInput.value = itemId;
+
+    //                                 // Fetch stock for selected item
+    //                                 fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
+    //                                     .then(res => res.json())
+    //                                     .then(data => {
+    //                                         quantityInputs.forEach(input => {
+    //                                             input.value = data.quantity || "0";
+    //                                         });
+    //                                     })
+    //                                     .catch(err => {
+    //                                         console.error("Error fetching stock", err);
+    //                                         quantityInputs.forEach(input => input.value = "0");
+    //                                     });
+    //                             }
+    //                         });
+    //                     })
+    //                     .catch(err => console.error("Error fetching items:", err));
+    //             });
+    //         });
+    //     }
+
+    //     function setupModalHandlers() {
+    //         document.querySelectorAll(".add-item-btn").forEach(button => {
+    //             button.addEventListener("click", function () {
+    //                 const itemType = this.getAttribute("data-itemType");
+    //                 const modal = document.querySelector(this.getAttribute("data-bs-target"));
+    //                 const itemList = modal.querySelector("datalist#itemList");
+    //                 const hiddenItemIdInput = modal.querySelector("input#hiddenItemId");
+    //                 const quantityInputs = modal.querySelectorAll("input.quantityPresent");
+    //                 const hiddenItemType = modal.querySelector("input#ItemType");
+    //                 hiddenItemType.value = itemType; // Set the item type in the hidden input
+
+    //                 // Fetch and populate items for selected itemType
+    //                 fetch(`/PrincipalDashboard/InventoryManagement?handler=GetItems&itemType=${encodeURIComponent(itemType)}`)
+    //                     .then(res => res.json())
+    //                     .then(items => {
+    //                         itemList.innerHTML = "";
+    //                         items.forEach(item => {
+    //                             const option = document.createElement("option");
+    //                             option.value = item.itemName;
+    //                             option.setAttribute("data-id", item.itemId);
+    //                             itemList.appendChild(option);
+    //                         });
+
+    //                         // Handle item selection
+    //                         const itemSearch = modal.querySelector("input[list='itemList']");
+    //                         itemSearch.addEventListener("change", function () {
+    //                             const inputValue = this.value;
+    //                             const matchedOption = [...itemList.options].find(opt => opt.value === inputValue);
+
+    //                             if (matchedOption) {
+    //                                 const itemId = matchedOption.getAttribute("data-id");
+    //                                 hiddenItemIdInput.value = itemId;
+
+    //                                 // Fetch stock for selected item
+    //                                 fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
+    //                                     .then(res => res.json())
+    //                                     .then(data => {
+    //                                         quantityInputs.forEach(input => {
+    //                                             input.value = data.quantity || "0";
+    //                                         });
+    //                                     })
+    //                                     .catch(err => {
+    //                                         console.error("Error fetching stock", err);
+    //                                         quantityInputs.forEach(input => input.value = "0");
+    //                                     });
+    //                             }
+    //                         });
+    //                     })
+    //                     .catch(err => console.error("Error fetching items:", err));
+    //             });
+    //         });
+    //     }
+
+    //     function loadItemsOnItemTypeChange() {
+    //         const itemTypeDropdown = document.getElementById("itemTypeDropdown");
+    //         const itemList = document.querySelector("datalist#itemList");
+    //         const itemSearch = document.querySelector("input[list='itemList']");
+    //         const hiddenItemIdInput = document.querySelector("input#hiddenItemId");
+    //         const quantityInputs = document.querySelectorAll("input.quantityPresent");
+
+    //         if (!itemTypeDropdown) return;
+
+    //         itemTypeDropdown.addEventListener("change", function () {
+    //             const itemType = this.value;
+
+    //             // Clear previous values
+    //             itemList.innerHTML = "";
+    //             itemSearch.value = "";
+    //             hiddenItemIdInput.value = "";
+    //             quantityInputs.forEach(input => input.value = "");
+
+    //             fetch(`/PrincipalDashboard/InventoryManagement?handler=GetItems&itemType=${encodeURIComponent(itemType)}`)
+    //                 .then(res => res.json())
+    //                 .then(items => {
+    //                     items.forEach(item => {
+    //                         const option = document.createElement("option");
+    //                         option.value = item.itemName;
+    //                         option.setAttribute("data-id", item.itemId);
+    //                         itemList.appendChild(option);
+    //                     });
+    //                 })
+    //                 .catch(err => {
+    //                     console.error("Error fetching items:", err);
+    //                 });
+    //         });
+
+    //         // Item selection logic
+    //         itemSearch.addEventListener("change", function () {
+    //             const inputValue = this.value;
+    //             const matchedOption = [...itemList.options].find(opt => opt.value === inputValue);
+
+    //             if (matchedOption) {
+    //                 const itemId = matchedOption.getAttribute("data-id");
+    //                 hiddenItemIdInput.value = itemId;
+
+    //                 fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
+    //                     .then(res => res.json())
+    //                     .then(data => {
+    //                         quantityInputs.forEach(input => {
+    //                             input.value = data.quantity || "0";
+    //                         });
+    //                     })
+    //                     .catch(err => {
+    //                         console.error("Error fetching stock", err);
+    //                         quantityInputs.forEach(input => input.value = "0");
+    //                     });
+    //             }
+    //         });
+    //     }
+
+    //     function setupVendorModalHandlers() {
+    //         document.querySelectorAll(".add-item-btn").forEach(button => {
+    //             button.addEventListener("click", function () {
+    //                 const itemType = this.getAttribute("data-itemType");
+    //                 const modal = document.querySelector(this.getAttribute("data-bs-target"));
+    //                 const itemList = modal.querySelector("datalist#itemList");
+    //                 const hiddenItemIdInput = modal.querySelector("input#hiddenItemId");
+    //                 const quantityInputs = modal.querySelectorAll("input.quantityPresent");
+    //                 const hiddenItemType = modal.querySelector("input#ItemType");
+    //                 hiddenItemType.value = itemType; // Set the item type in the hidden input
+
+    //                 // Fetch and populate items for selected itemType
+    //                 fetch(`/PrincipalDashboard/InventoryManagement?handler=GetItems&itemType=${encodeURIComponent(itemType)}`)
+    //                     .then(res => res.json())
+    //                     .then(items => {
+    //                         itemList.innerHTML = "";
+    //                         items.forEach(item => {
+    //                             const option = document.createElement("option");
+    //                             option.value = item.itemName;
+    //                             option.setAttribute("data-id", item.itemId);
+    //                             itemList.appendChild(option);
+    //                         });
+
+    //                         // Handle item selection
+    //                         const itemSearch = modal.querySelector("input[list='itemList']");
+    //                         itemSearch.addEventListener("change", function () {
+    //                             const inputValue = this.value;
+    //                             const matchedOption = [...itemList.options].find(opt => opt.value === inputValue);
+
+    //                             if (matchedOption) {
+    //                                 const itemId = matchedOption.getAttribute("data-id");
+    //                                 hiddenItemIdInput.value = itemId;
+
+    //                                 // Fetch stock for selected item
+    //                                 fetch(`/PrincipalDashboard/InventoryManagement?handler=ItemStock&itemId=${encodeURIComponent(itemId)}`)
+    //                                     .then(res => res.json())
+    //                                     .then(data => {
+    //                                         quantityInputs.forEach(input => {
+    //                                             input.value = data.quantity || "0";
+    //                                         });
+    //                                     })
+    //                                     .catch(err => {
+    //                                         console.error("Error fetching stock", err);
+    //                                         quantityInputs.forEach(input => input.value = "0");
+    //                                     });
+    //                             }
+    //                         });
+    //                     })
+    //                     .catch(err => console.error("Error fetching items:", err));
+    //             });
+    //         });
+    //     }
+
+
+    //     // Restore tab state if needed
+    //     const selectedTab = document.getElementById("selectedTab")?.value;
+    //     if (selectedTab) {
+    //         const triggerEl = document.querySelector(`button[data-bs-target="#${selectedTab}"]`);
+    //         if (triggerEl) new bootstrap.Tab(triggerEl).show();
+    //     }
+
+    //     // Save active tab on click
+    //     document.querySelectorAll('.nav-link').forEach(tab => {
+    //         tab.addEventListener('click', function () {
+    //             document.getElementById("ActiveTab").value = this.getAttribute("data-bs-target").substring(1);
+    //         });
+    //     });
+    // });
 
 </script>
 <div class="bg-white mt-2 py-2">
@@ -151,6 +492,7 @@
             <button class="nav-link text-start" id="v-pills-vm-tab" data-bs-toggle="pill" data-bs-target="#v-pills-vm" type="button" role="tab" aria-controls="v-pills-vm" aria-selected="false">Vendor Management</button>
         </div>
         <div class="tab-content custom-tab-content p-3 m-0 w-100" id="v-pills-tabContent">
+
             <div class="tab-pane fade show active" id="v-pills-home" role="tabpanel" aria-labelledby="v-pills-home-tab">
                 <div class="row">
                     <div class="col-md-9">
@@ -756,188 +1098,13 @@
                 </div>
             </div>
             <div class="tab-pane fade" id="v-pills-vm" role="tabpanel" aria-labelledby="v-pills-vm-tab">
-                <div class="row">
-                    <div class="col-12">
-                        <ul class="nav nav-tabs">
-                            <li class="nav-item">
-                                <a class="nav-link active" data-bs-toggle="tab" href="#provision2">Add Vendor</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#perishablee2">Delete Vendor</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#rice2">Edit Vendor</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#cleaning2">Edit Cost</a>
-                            </li>
-                        </ul>
-                        <div class="tab-content">
-                            <div id="provision2" class="tab-pane fade show active">
-                                <div class="date-filters justify-content-end">
-                                    <button class="btn btn-outline-secondary"><img src="img/print_icon.png"></button>
-                                    <button class="btn btn-outline-secondary"><img src="img/download_icon.png"></button>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered text-center align-middle">
-                                        <thead class="table-primary">
-                                            <tr>
-                                                <th>S.No</th>
-                                                <th>Fixed List of Items</th>
-                                                <th>Present Date</th>
-                                                <th>Provision / Perishable / Cleaning Agents</th>
-                                                <th>Order No.</th>
-                                                <th>Vendor Name</th>
-                                                <th>Bank Details</th>
-                                                <th>Vendor Contact</th>
-                                                <th>Cost Fixed</th>
-                                                <th>Max Qty. per Month</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <!-- Repeat this row as needed -->
-                                            <tr>
-                                                <td>01</td>
-                                                <td>Spices</td>
-                                                <td>15-05-2025</td>
-                                                <td>Spices</td>
-                                                <td>21542</td>
-                                                <td>Ashok Kumar</td>
-                                                <td>HDFC Bank</td>
-                                                <td>99999 99999</td>
-                                                <td>₹500</td>
-                                                <td>150kg</td>
-                                                <td class="action-icons">
-                                                    <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-plus-circle text-primary"></i></label>
-                                                    <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-pencil-square text-warning"></i></label>
-                                                    <label class="modalpopup" data-bs-toggle="modal" data-bs-target="#addvendor"><i class="bi bi-trash text-danger"></i></label>
-                                                </td>
-                                            </tr>
-                                            <!-- Duplicate above row as per data -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="modal fade" id="addvendor" tabindex="-1" aria-labelledby="addvendorLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-xl">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h1 class="modal-title fs-5" id="addvendorLabel">Add Vendor</h1>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <form>
-                                                    <div class="row mb-3">
-                                                        <label for="provisionDetails" class="col-sm-2 col-form-label">Provision Details</label>
-                                                        <div class="col-sm-4">
-                                                            <select class="form-select" id="provisionDetails">
-                                                                <option selected>Select</option>
-                                                                <option>Ratio</option>
-                                                                <option>Perishable</option>
-                                                                <option>Oil / Ghee</option>
-                                                                <option>Milk</option>
-                                                                <option>Egg</option>
-                                                                <!-- Add options here -->
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="provisionName" class="col-sm-2 col-form-label">Provision Name</label>
-                                                        <div class="col-sm-4">
-                                                            <select class="form-select" id="provisionName">
-                                                                <option selected>Select</option>
-                                                                <!-- Add options here -->
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="vendorName" class="col-sm-2 col-form-label">Vendor Name</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="text" class="form-control" id="vendorName" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="agencyName" class="col-sm-2 col-form-label">Name of the Agency</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="text" class="form-control" id="agencyName" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="bankAccount" class="col-sm-2 col-form-label">Bank A/c No</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="text" class="form-control" id="bankAccount" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="ifscCode" class="col-sm-2 col-form-label">IFSC Code</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Vendor Contact</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Max Suppliable Quantity</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Cost of the Quantity (in Kg/Litre)</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Dist Collector Order/ Circular Upload</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="file" class="form-control" id="ifscCode" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Vendor Document Upload</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="file" class="form-control" id="ifscCode" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <div class="col-sm-12 text-center">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                            <button type="button" class="btn btn-primary">Submit</button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-3">
-                                                        <label for="ifscCode" class="col-sm-2 col-form-label">Enter OTP</label>
-                                                        <div class="col-sm-4">
-                                                            <input type="text" class="form-control" id="ifscCode" placeholder="">
-                                                        </div>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                            <!-- <div class="modal-footer">
-                                               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                               <button type="button" class="btn btn-primary">Submit</button>
-                                               </div> -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="perishablee2" class="tab-pane fade">
-                            </div>
-                            <div id="rice2" class="tab-pane fade">
-                            </div>
-                            <div id="cleaning2" class="tab-pane fade">
-                            </div>
-                        </div>
-                    </div>
+                <div id="vendorContent">
+                    <p>Loading...</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<input type="hidden" id="selectedTab" asp-for="SelectedTab" />
+<input type="hidden" id="selectedTab" asp-for="SelectedTab" value="@Model.SelectedTab" />
+<input type="hidden" id="ActiveTab" name="ActiveTab" />

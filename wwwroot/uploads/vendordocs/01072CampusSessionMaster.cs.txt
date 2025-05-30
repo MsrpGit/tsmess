@@ -1,0 +1,728 @@
+﻿using Dapper;
+using EdusyncSecurity;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using System.Data;
+using System.Data.Common;
+using System.Data.SqlClient;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+
+namespace CampusSessionBO
+{
+    public class CampusSessionMaster : ISessionInterface
+    {
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IConfiguration _configuration;
+        private readonly EncryptionService _encryptionService;
+        private readonly ILogger<CampusSessionMaster> _logger;
+
+        public CampusSessionMaster(
+            IHttpContextAccessor httpContextAccessor,
+            IConfiguration configuration,
+            EncryptionService encryptionService,
+            ILogger<CampusSessionMaster> logger)
+        {
+            _httpContextAccessor = httpContextAccessor;
+            _configuration = configuration;
+            _encryptionService = encryptionService;
+            _logger = logger;
+        }
+
+        public string GetConnectionString()
+        {
+            return GetTenantConString();
+        }
+
+        public string GetConnectionString(bool isMaster)
+        {
+            return isMaster.Equals(true) ? GetMasterConString() : GetTenantConString();
+        }
+
+        public async Task<bool> GetSession()
+        {
+            try
+            {
+                if (_httpContextAccessor.HttpContext == null)
+                {
+                    throw new Exception("HttpContext is not available. Session might not be configured properly.");
+                }
+
+                CampusSessionInfo campusSession = null;
+
+                // Retrieve the serialized object from the session
+                var serializedObject = _httpContextAccessor.HttpContext.Session.GetString("Campus");
+
+                if (string.IsNullOrEmpty(serializedObject))
+                {
+                    // Get the URL and normalize it
+                    //string url = NormalizeUrl(_httpContextAccessor.HttpContext.Request.GetEncodedUrl());
+
+                    // Here "shastri" is hardcoded. This might be a placeholder and should be replaced with actual logic.
+                    //string clientUrl = "branch1";
+                    var request = _httpContextAccessor.HttpContext.Request;
+                    var clientUrl = request.Host.Host;
+                    DataTable tenantDataTable = new DataTable();
+                    string shortName = string.Empty;
+
+                    _logger.LogInformation(clientUrl);
+
+                    if (clientUrl.Contains("localhost"))
+                    {
+                        shortName = request.Query["shortname"].ToString(); // Use Query collection
+
+                        if (!string.IsNullOrEmpty(shortName))
+                        {
+                            tenantDataTable = await GetTenantInfo(shortName, "ShortName");
+
+                            if (tenantDataTable == null || tenantDataTable.Rows.Count == 0)
+                            {
+                                _logger.LogInformation("No tenant exists");
+                                return false;
+                            }
+
+                            shortName = tenantDataTable.Rows[0]["Website_ShortName"].ToString();
+                            Int64 TenantId = Convert.ToInt64(tenantDataTable.Rows[0]["PartnerID"].ToString());
+
+                            //var tdtVar = JsonConvert.SerializeObject(tenantDataTable);
+                            //_logger.LogInformation("Tenant Identification Completed :" + tdtVar);
+
+                            var result = await SchoolSiteDetailsExtended(shortName, TenantId);
+                            campusSession = (CampusSessionInfo)result;
+                        }
+                    }
+                    else
+                    {
+                        tenantDataTable = await GetTenantInfo(clientUrl, "url");
+
+                        if (tenantDataTable == null || tenantDataTable.Rows.Count == 0)
+                        {
+                            _logger.LogInformation("No tenant exists");
+                            return false;
+                        }
+
+                        var tdtVar = JsonConvert.SerializeObject(tenantDataTable);
+                        _logger.LogInformation("Tenant Identification Completed :");// + tdtVar);
+
+                        var result = await GetSchoolSiteDetailsExtended(clientUrl);
+                        campusSession = (CampusSessionInfo)result;
+                    }
+
+                    //string serverval = _encryptionService.Encrypt("192.168.101.75");
+                    //string useridval = _encryptionService.Encrypt("newera");
+                    //string pwdval = _encryptionService.Encrypt("1n10$e@123");
+                    //string schemaval = _encryptionService.Encrypt("neweraschema");
+                    //string dbval = _encryptionService.Encrypt("CCMLIVE");
+
+                    //_logger.LogInformation(string.Concat("LoginController", "serverval:", serverval, "useridval:", useridval,
+                    //   ";pwdval:", pwdval, ";schemaval:", schemaval, ";dbval:", dbval));
+
+
+                    // Load dynamic schema details of the tenant
+                    /*campusSession.Datasource = tenantDataTable.Rows[0]["SchemaServer"].ToString();
+                    campusSession.DsuserID = tenantDataTable.Rows[0]["SchemaUserId"].ToString();
+                    campusSession.Dspkey = tenantDataTable.Rows[0]["SchemaKey"].ToString();
+                    campusSession.Icatalog = tenantDataTable.Rows[0]["SchemaDataBase"].ToString();
+                    campusSession.Dschema = tenantDataTable.Rows[0]["SchemaName"].ToString();*/
+
+
+                    _logger.LogInformation("campusSession.Datasource " + tenantDataTable.Rows[0]["CommunitySchemaServer"].ToString());
+                    _logger.LogInformation("campusSession.DsuserID " + tenantDataTable.Rows[0]["CommunitySchemaUserId"].ToString());
+                    _logger.LogInformation("campusSession.Dspkey " + tenantDataTable.Rows[0]["CommunitySchemaKey"].ToString());
+                    _logger.LogInformation("campusSession.Icatalog " + tenantDataTable.Rows[0]["CommunitySchemaDataBase"].ToString());
+                    _logger.LogInformation("campusSession.Dschema " + tenantDataTable.Rows[0]["CommunitySchemaName"].ToString());
+
+                    //campusSession.Datasource = tenantDataTable.Rows[0]["CommunitySchemaServer"].ToString();
+                    //campusSession.DsuserID = tenantDataTable.Rows[0]["CommunitySchemaUserId"].ToString();
+                    //campusSession.Dspkey = tenantDataTable.Rows[0]["CommunitySchemaKey"].ToString();
+                    //campusSession.Icatalog = tenantDataTable.Rows[0]["CommunitySchemaDataBase"].ToString();
+                    //campusSession.Dschema = tenantDataTable.Rows[0]["CommunitySchemaName"].ToString();
+
+                    // Serialize and store the campus session in the session
+                    var serializedCampus = JsonConvert.SerializeObject(campusSession);
+                    //_logger.LogInformation("Campus Session " + serializedCampus);
+                    _httpContextAccessor.HttpContext.Session.SetString("Campus", serializedCampus);
+                }
+                else
+                {
+                    _logger.LogInformation("Campus Session already available");
+                }
+
+                // Override business rules of partner ICOM and ICON with partner's own rules
+                await OverrideBusinessRules(campusSession);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception or perform error handling here
+                _logger.LogError(ex.ToString());
+                //Console.Write("LoginController", $"Error during login: {ex.Message}");
+                return false;
+            }
+            return true;
+        }
+
+        private string NormalizeUrl(string url)
+        {
+            url = url.Replace("http://", "").Replace("https://", "").Replace("www.", "");
+
+            string[] domainEndings = { ".com", ".org", ".net", ".info" };
+            int index = -1;
+
+            foreach (var ending in domainEndings)
+            {
+                index = url.IndexOf(ending);
+                if (index != -1)
+                {
+                    break;
+                }
+            }
+
+            if (index > 0)
+            {
+                return url.Substring(0, index + 4); // 4 is the length of the domain ending (e.g., ".com")
+            }
+
+            throw new Exception("Unsupported URL format");
+        }
+
+        private async Task OverrideBusinessRules(CampusSessionInfo campusSession)
+        {
+            try
+            {
+                var campusObjectJson = _httpContextAccessor.HttpContext.Session.GetString("Campus");
+
+                if (!string.IsNullOrEmpty(campusObjectJson))
+                {
+                    campusSession = JsonConvert.DeserializeObject<CampusSessionInfo>(campusObjectJson);
+                }
+
+                DataTable businessRulesDt = await GetBusinessRules(campusSession.TenantId);
+
+                if (businessRulesDt != null && businessRulesDt.Rows.Count > 0)
+                {
+                    DataTable newBusinessRules = campusSession.Pwbrules.Select("BusinessRuletype= 'ECON'").CopyToDataTable();
+                    AddBusinessRules(businessRulesDt, newBusinessRules, "ICOM");
+                    AddBusinessRules(businessRulesDt, newBusinessRules, "ICON");
+
+                    campusSession.Pwbrules = newBusinessRules;
+                    var serializedCampus = JsonConvert.SerializeObject(campusSession);
+                    _httpContextAccessor.HttpContext.Session.SetString("Campus", serializedCampus);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+            }
+        }
+
+        private void AddBusinessRules(DataTable sourceDt, DataTable targetDt, string ruleType)
+        {
+            var rows = sourceDt.Select($"BusinessRuletype= '{ruleType}'");
+            foreach (var row in rows)
+            {
+                targetDt.Rows.Add(row.ItemArray);
+            }
+        }
+
+        public async Task<DataTable> GetTenantInfo(string userID, string type)
+        {
+            DataTable dataTable = new DataTable();
+            try
+            {
+                var parameters = new { value = userID, type = type };
+
+                using (IDbConnection dbConnection = new SqlConnection(GetConnectionString(true)))
+                {
+                    var dataReader = await dbConnection.ExecuteReaderAsync("USP_GetTenantInfo", parameters, commandType: CommandType.StoredProcedure);
+                    dataTable.Load(dataReader);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+            }
+            return dataTable;
+        }
+
+        public async Task<DataTable> GetBusinessRules()
+        {
+            DataTable dataTable = new DataTable();
+            try
+            {
+                var parameters = new { };
+
+                using (IDbConnection dbConnection = new SqlConnection(GetConnectionString(true)))
+                {
+                    var dataReader = await dbConnection.ExecuteReaderAsync("USP_GETBUSINESSRULES", parameters, commandType: CommandType.StoredProcedure);
+                    dataTable.Load(dataReader);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+            }
+            return dataTable;
+        }
+
+        public async Task<DataTable> GetBusinessRules(long partnerId)
+        {
+            DataTable dataTable = new DataTable();
+            try
+            {
+                var parameters = new { PartnerId = partnerId };
+                _logger.LogInformation("USP_GETBUSINESSRULES partnerId:" + partnerId);
+                _logger.LogInformation("GetConnectionString():" + GetConnectionString());
+                using (IDbConnection dbConnection = new SqlConnection(GetConnectionString()))
+                {
+                    var dataReader = await dbConnection.ExecuteReaderAsync("USP_GETBUSINESSRULES", parameters, commandType: CommandType.StoredProcedure);
+                    dataTable.Load(dataReader);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+            }
+            return dataTable;
+        }
+
+        public async Task<DataTable> GetBusinessRules(long partnerId, long businessRuleId)
+        {
+            DataTable dataTable = new DataTable();
+            try
+            {
+                var parameters = new { PartnerId = partnerId, BusinessRuleId = businessRuleId };
+
+                using (IDbConnection dbConnection = new SqlConnection(GetConnectionString(true)))
+                {
+                    var dataReader = await dbConnection.ExecuteReaderAsync("USP_GETBUSINESSRULES", parameters, commandType: CommandType.StoredProcedure);
+                    dataTable.Load(dataReader);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+            }
+            return dataTable;
+        }
+
+        public async Task<DataTable> GetSchoolSiteDetailsData(string siteUrl)
+        {
+            DataTable dataTable = new DataTable();
+            try
+            {
+                var parameters = new { Siteurl = siteUrl };
+                using (IDbConnection dbConnection = new SqlConnection(GetConnectionString(true)))
+                {
+                    var dataReader = await dbConnection.ExecuteReaderAsync("USP_SiteDetailsByURL", parameters, commandType: CommandType.StoredProcedure);
+                    dataTable.Load(dataReader);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+            }
+            return dataTable;
+        }
+
+        public async Task<CampusSessionInfo> GetSchoolSiteDetailsExtended(string siteUrl)
+        {
+            CampusSessionInfo campusSummary = null;
+            try
+            {
+                DataSet myDs = new DataSet();
+                var parameters = new { Siteurl = siteUrl };
+                using (IDbConnection dbConnection = new SqlConnection(GetConnectionString(true)))
+                {
+                    //var result = await dbConnection.QueryMultipleAsync("USP_SiteDetailsByURL", parameters, commandType: CommandType.StoredProcedure);
+
+                    //while (!result.IsConsumed)
+                    //{
+                    //    DataTable dataTable = new DataTable();
+                    //    dataTable.Load((IDataReader)await result.ReadAsync());
+
+                    //    myDs.Tables.Add(dataTable);
+                    //}
+
+                    var result = await dbConnection.QueryMultipleAsync("USP_SiteDetailsByURL", parameters, commandType: CommandType.StoredProcedure);
+
+                    while (!result.IsConsumed)
+                    {
+                        var dataTable = new DataTable();
+                        var firstRow = true;
+
+                        // Read the result set
+                        var reader = await result.ReadAsync();
+                        foreach (var row in reader)
+                        {
+                            if (firstRow)
+                            {
+                                // Create columns
+                                foreach (var key in ((IDictionary<string, object>)row).Keys)
+                                {
+                                    if (!dataTable.Columns.Contains(key))
+                                        dataTable.Columns.Add(key);
+                                }
+                                firstRow = false;
+                            }
+
+                            // Add rows
+                            var dataRow = dataTable.NewRow();
+                            foreach (var key in ((IDictionary<string, object>)row).Keys)
+                            {
+                                dataRow[key] = ((IDictionary<string, object>)row)[key];
+                            }
+                            dataTable.Rows.Add(dataRow);
+                        }
+
+                        myDs.Tables.Add(dataTable);
+                    }
+                }
+
+                //var tdtVar = JsonConvert.SerializeObject(myDs);
+                //_logger.LogInformation("Tenant Identification Completed :" + tdtVar);
+
+                if (myDs != null && myDs.Tables.Count > 0 && myDs.Tables[0].Rows.Count > 0)
+                {
+                    var drow = myDs.Tables[0].Rows[0];
+                    campusSummary = new CampusSessionInfo
+                    {
+                        Shortname = drow["Website_ShortName"].ToString(),
+                        CampusName = drow["Website_Title"].ToString(),
+                        Websitetitle = drow["Website_Title"].ToString(),
+                        TenantId = Convert.ToInt64(drow["PartnerID"]),
+                        CampusCaption = drow["Website_Caption"].ToString(),
+                        Websiteid = Convert.ToInt64(drow["WebsiteID"]),
+                        WebSiteLogo = drow["Website_Logo"].ToString(),
+                        IsMainBranch = Convert.ToInt32(drow["IsMainBranch"]),
+                        Status = Convert.ToBoolean(drow["Status"]),
+                        Mobile = drow["Mobile"].ToString(),
+                        ContactNumber = drow["ContactNumber"].ToString(),
+                        Website_Css = drow["Website_Css"].ToString(),
+                        ServicesProvided = Convert.ToInt16(drow["ServicesProvided"]),
+                        Siteurls = drow["SiteUrls"].ToString(),
+                        WebsiteAddress = drow["Website_Address"].ToString(),
+                        Senderid = drow["Senderid"].ToString(),
+                        WebSiteHeaderLogo = drow["WebSiteHeaderLogo"].ToString(),
+                        Keywords = drow["Keywords"].ToString(),
+                        Title = drow["Title"].ToString(),
+                        Description = drow["Description"].ToString(),
+                        PartneruserId = drow["PartneruserId"].ToString(),
+                        PartnerEmailId = drow["ContacteMailAddress"].ToString(),
+                        Partnerdesignation = drow["Designation"].ToString(),
+                        CurrentacYearId = Convert.ToInt64(drow["AcademicYearID"]),
+                        currentstartdate = Convert.ToDateTime(drow["Startdate"]),
+                        currentenddate = Convert.ToDateTime(drow["Enddate"]),
+                        SelectedacYearId = Convert.ToInt64(drow["AcademicYearID"]),
+                        Selectedstartdate = Convert.ToDateTime(drow["Startdate"]),
+                        Selectedenddate = Convert.ToDateTime(drow["Enddate"]),
+                        Totalusercount = Convert.ToInt64(drow["Totalusercount"]),
+                        TotalCredits = Convert.ToInt64(drow["Totalcredits"]),
+                        Logintype = drow["Logintype"].ToString(),
+                        Defaultpage = drow["Defaultpage"].ToString(),
+                        Listofmodules = drow["Listofmodules"].ToString(),
+                        Validityperiod = Convert.ToInt64(drow["Validityperiod"]),
+                        Noofusers = Convert.ToInt64(drow["Noofusers"]),
+                        Utilisedusercredits = Convert.ToInt64(drow["Utilisedusercredits"]),
+                        Newadmissions = Convert.ToInt64(drow["Newadmissions"]),
+                        SubscriptionDate = drow["SubscriptionDate"].ToString(),
+                        CreatedDate = drow["CreatedDate"].ToString(),
+                        PartnerType = drow["PartnerType"].ToString(),
+                        PartnerTypeId = Convert.ToInt16(drow["PartnerTypeID"])
+                    };
+                    _logger.LogInformation("Table 1 : complete ");
+                    if (myDs.Tables.Count > 1 && myDs.Tables[1].Rows.Count > 0)
+                    {
+                        campusSummary.Pwbrules = myDs.Tables[1];
+                    }
+                    _logger.LogInformation("Table 2 : complete ");
+                    if (myDs.Tables.Count > 2 && myDs.Tables[2].Rows.Count > 0)
+                    {
+                        var dt3row = myDs.Tables[2].Rows[0];
+                        /*campusSummary.Datasource = dt3row["SchemaServer"].ToString();
+                        campusSummary.DsuserID = dt3row["SchemaUserId"].ToString();
+                        campusSummary.Dspkey = dt3row["SchemaKey"].ToString();
+                        campusSummary.Icatalog = dt3row["SchemaDataBase"].ToString();
+                        campusSummary.Dschema = dt3row["SchemaName"].ToString();*/
+
+                        _logger.LogInformation("Table 3 :start ");
+
+                        campusSummary.Datasource = dt3row["CommunitySchemaServer"].ToString();
+                        campusSummary.DsuserID = dt3row["CommunitySchemaUserId"].ToString();
+                        campusSummary.Dspkey = dt3row["CommunitySchemaKey"].ToString();
+                        campusSummary.Icatalog = dt3row["CommunitySchemaDataBase"].ToString();
+                        campusSummary.Dschema = dt3row["CommunitySchemaName"].ToString();
+
+                        _logger.LogInformation("Table 3 :end ");
+                    }
+
+                    if (myDs.Tables.Count > 3 && myDs.Tables[3].Rows.Count > 0)
+                    {
+                        _logger.LogInformation("Table 4 :start ");
+                        var dt4row = myDs.Tables[3].Rows[0];
+                        campusSummary.Subscribedpgs = dt4row["Subscribedpgs"].ToString();
+                        campusSummary.Extraparam1 = dt4row["Extraparam1"].ToString();
+                        campusSummary.Extraparam2 = dt4row["Extraparam2"].ToString();
+                        campusSummary.Extraparam3 = dt4row["Extraparam3"].ToString();
+                        campusSummary.Extraparam4 = dt4row["Extraparam4"].ToString();
+                        campusSummary.Extraparam5 = dt4row["Extraparam5"].ToString();
+                        campusSummary.Extraparam6 = dt4row["Extraparam6"].ToString();
+                        campusSummary.Extraparam7 = dt4row["Extraparam7"].ToString();
+                        campusSummary.Extraparam8 = dt4row["Extraparam8"].ToString();
+                        campusSummary.Extraparam9 = dt4row["Extraparam9"].ToString();
+                        campusSummary.Extraparam10 = dt4row["Extraparam10"].ToString();
+                        _logger.LogInformation("Table 4 :end ");
+                    }
+                }
+                return campusSummary;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return campusSummary;
+            }
+        }
+
+        public async Task<CampusSessionInfo> SchoolSiteDetailsExtended(string shortname, long partnerId)
+        {
+            CampusSessionInfo campusSummary = null;
+            try
+            {
+                DataSet myDs = new DataSet();
+                var parameters = new { shortname, partnerid = partnerId };
+                string con = ((GetConnectionString(true)));
+
+                _logger.LogInformation("constr at USP_SchoolSiteDetails :" + con);
+                _logger.LogInformation("shortname/url :" + shortname + ";partnerId:" + partnerId);
+
+                using (IDbConnection dbConnection = new SqlConnection(con))
+                {
+                    var dataAdapter = new SqlDataAdapter
+                    {
+                        SelectCommand = new SqlCommand("USP_SchoolSiteDetails", (SqlConnection)dbConnection)
+                        {
+                            CommandType = CommandType.StoredProcedure
+                        }
+                    };
+
+                    foreach (var prop in parameters.GetType().GetProperties())
+                    {
+                        dataAdapter.SelectCommand.Parameters.AddWithValue("@" + prop.Name, prop.GetValue(parameters, null));
+                    }
+
+                    dataAdapter.Fill(myDs);
+                }
+
+                if (myDs != null && myDs.Tables.Count > 0 && myDs.Tables[0].Rows.Count > 0)
+                {
+                    var drow = myDs.Tables[0].Rows[0];
+                    campusSummary = new CampusSessionInfo
+                    {
+                        Shortname = drow["Website_ShortName"].ToString(),
+                        CampusName = drow["Website_Title"].ToString(),
+                        Websitetitle = drow["Website_Title"].ToString(),
+                        TenantId = Convert.ToInt64(drow["PartnerID"]),
+                        CampusCaption = drow["Website_Caption"].ToString(),
+                        Websiteid = Convert.ToInt64(drow["WebsiteID"]),
+                        WebSiteLogo = drow["Website_Logo"].ToString(),
+                        IsMainBranch = Convert.ToInt32(drow["IsMainBranch"]),
+                        Status = Convert.ToBoolean(drow["Status"]),
+                        Mobile = drow["Mobile"].ToString(),
+                        ContactNumber = drow["ContactNumber"].ToString(),
+                        Website_Css = drow["Website_Css"].ToString(),
+                        ServicesProvided = Convert.ToInt16(drow["ServicesProvided"]),
+                        Siteurls = drow["SiteUrls"].ToString(),
+                        WebsiteAddress = drow["Website_Address"].ToString(),
+                        Senderid = drow["Senderid"].ToString(),
+                        WebSiteHeaderLogo = drow["WebSiteHeaderLogo"].ToString(),
+                        Keywords = drow["Keywords"].ToString(),
+                        Title = drow["Title"].ToString(),
+                        Description = drow["Description"].ToString(),
+                        PartneruserId = drow["PartneruserId"].ToString(),
+                        PartnerEmailId = drow["ContacteMailAddress"].ToString(),
+                        Partnerdesignation = drow["Designation"].ToString(),
+                        CurrentacYearId = Convert.ToInt64(drow["AcademicYearID"]),
+                        currentstartdate = Convert.ToDateTime(drow["Startdate"]),
+                        currentenddate = Convert.ToDateTime(drow["Enddate"]),
+                        SelectedacYearId = Convert.ToInt64(drow["AcademicYearID"]),
+                        Selectedstartdate = Convert.ToDateTime(drow["Startdate"]),
+                        Selectedenddate = Convert.ToDateTime(drow["Enddate"]),
+                        Totalusercount = Convert.ToInt64(drow["Totalusercount"]),
+                        TotalCredits = Convert.ToInt64(drow["Totalcredits"]),
+                        Logintype = drow["Logintype"].ToString(),
+                        Defaultpage = drow["Defaultpage"].ToString(),
+                        Listofmodules = drow["Listofmodules"].ToString(),
+                        Validityperiod = Convert.ToInt64(drow["Validityperiod"]),
+                        Noofusers = Convert.ToInt64(drow["Noofusers"]),
+                        Utilisedusercredits = Convert.ToInt64(drow["Utilisedusercredits"]),
+                        Newadmissions = Convert.ToInt64(drow["Newadmissions"]),
+                        SubscriptionDate = drow["SubscriptionDate"].ToString(),
+                        CreatedDate = drow["CreatedDate"].ToString(),
+                        PartnerType = drow["PartnerType"].ToString(),
+                        PartnerTypeId = Convert.ToInt16(drow["PartnerTypeID"])
+                    };
+
+                    if (myDs.Tables.Count > 1 && myDs.Tables[1].Rows.Count > 0)
+                    {
+                        campusSummary.Pwbrules = myDs.Tables[1];
+                    }
+
+                    if (myDs.Tables.Count > 2 && myDs.Tables[2].Rows.Count > 0)
+                    {
+                        var dt3row = myDs.Tables[2].Rows[0];
+                        /*campusSummary.Datasource = dt3row["SchemaServer"].ToString();
+                        campusSummary.DsuserID = dt3row["SchemaUserId"].ToString();
+                        campusSummary.Dspkey = dt3row["SchemaKey"].ToString();
+                        campusSummary.Icatalog = dt3row["SchemaDataBase"].ToString();
+                        campusSummary.Dschema = dt3row["SchemaName"].ToString();*/
+
+                        campusSummary.Datasource = dt3row["CommunitySchemaServer"].ToString();
+                        campusSummary.DsuserID = dt3row["CommunitySchemaUserId"].ToString();
+                        campusSummary.Dspkey = dt3row["CommunitySchemaKey"].ToString();
+                        campusSummary.Icatalog = dt3row["CommunitySchemaDataBase"].ToString();
+                        campusSummary.Dschema = dt3row["CommunitySchemaName"].ToString();
+                    }
+
+                    if (myDs.Tables.Count > 3 && myDs.Tables[3].Rows.Count > 0)
+                    {
+                        var dt4row = myDs.Tables[3].Rows[0];
+                        campusSummary.Subscribedpgs = dt4row["Subscribedpgs"].ToString();
+                        campusSummary.Extraparam1 = dt4row["Extraparam1"].ToString();
+                        campusSummary.Extraparam2 = dt4row["Extraparam2"].ToString();
+                        campusSummary.Extraparam3 = dt4row["Extraparam3"].ToString();
+                        campusSummary.Extraparam4 = dt4row["Extraparam4"].ToString();
+                        campusSummary.Extraparam5 = dt4row["Extraparam5"].ToString();
+                        campusSummary.Extraparam6 = dt4row["Extraparam6"].ToString();
+                        campusSummary.Extraparam7 = dt4row["Extraparam7"].ToString();
+                        campusSummary.Extraparam8 = dt4row["Extraparam8"].ToString();
+                        campusSummary.Extraparam9 = dt4row["Extraparam9"].ToString();
+                        campusSummary.Extraparam10 = dt4row["Extraparam10"].ToString();
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("USP_SchoolSiteDetails no data available");
+                }
+                return campusSummary;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return campusSummary;
+            }
+        }
+
+        public bool IsUserLoggedIn()
+        {
+            try
+            {
+                return _httpContextAccessor.HttpContext.Session.GetString("User") != null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return false;
+            }
+        }
+
+        public bool CheckSessionFor(string key)
+        {
+            try
+            {
+                return _httpContextAccessor.HttpContext.Session.GetString(key) != null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return false;
+            }
+        }
+
+        public string GetTenantConString()
+        {
+            try
+            {
+                var campusObjectJson = _httpContextAccessor.HttpContext.Session.GetString("Campus");
+                if (string.IsNullOrEmpty(campusObjectJson))
+                {
+                    return string.Empty;
+                }
+
+                var campus = JsonConvert.DeserializeObject<CampusSessionInfo>(campusObjectJson);
+                if (campus == null)
+                {
+                    return string.Empty;
+                }
+
+                _logger.LogInformation(string.Concat("Datasource:", campus.Datasource, ";DsuserID:", campus.DsuserID, ";Dspkey:", campus.Dspkey, ";Icatalog:", campus.Icatalog));
+
+                return BuildConnectionString(campus.Datasource, campus.DsuserID, campus.Dspkey, campus.Icatalog);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return string.Empty;
+            }
+        }
+
+        public string GetTenantConString(string ds, string uid, string key, string ic)
+        {
+            try
+            {
+                return BuildConnectionString(ds, uid, key, ic);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return string.Empty;
+            }
+        }
+
+        public string GetMasterConString()
+        {
+            try
+            {
+                string cnStr = _configuration.GetConnectionString("DevelopmentConnection");
+                //return _encryptionService.Encrypt(cnStr);
+                return cnStr;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return string.Empty;
+            }
+        }
+
+        private string BuildConnectionString(string ds, string uid, string key, string ic, int timeout = 0)
+        {
+            try
+            {
+                _logger.LogInformation("DataSource decrypted=" + _encryptionService.Decrypt(ds));
+                _logger.LogInformation("UserID = " + _encryptionService.Decrypt(uid));
+                _logger.LogInformation("Password = " + _encryptionService.Decrypt(key));
+                _logger.LogInformation("InitialCatalog = " + _encryptionService.Decrypt(ic));
+                ;
+                var builder = new SqlConnectionStringBuilder
+                {
+                    DataSource = _encryptionService.Decrypt(ds),
+                    UserID = _encryptionService.Decrypt(uid),
+                    Password = _encryptionService.Decrypt(key),
+                    InitialCatalog = _encryptionService.Decrypt(ic),
+                    MaxPoolSize = int.Parse(_configuration["MaxPoolSize"] ?? "1000"),
+                    ConnectTimeout = timeout > 0 ? timeout : int.Parse(_configuration["ConnectionTimeout"] ?? "0")
+                };
+
+                return (builder.ConnectionString);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return string.Empty;
+            }
+        }
+
+
+    }
+}

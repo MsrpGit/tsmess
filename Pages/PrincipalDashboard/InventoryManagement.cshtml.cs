@@ -2,48 +2,59 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
-using tsmess.Data;
+using tsmess.Services;
 using tsmess.Models;
 
 namespace tsmess.Pages.PrincipalDashboard
 {
     public class InventoryManagementModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+
+        private readonly IConfiguration _configuration;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ITsMessService _tsMessService;
 
         // Corrected type name to match the actual model
-        public IEnumerable<ImSupplierMaster> Vendors { get; set; } = new List<ImSupplierMaster>();
-        public IEnumerable<ImSupplierMaster> items { get; set; } = new List<ImSupplierMaster>();
+        public List<Supplier> Vendors { get; set; }
 
-        public InventoryManagementModel(ApplicationDbContext context)
+        // public IEnumerable<ImSupplierMaster> items { get; set; } = new List<ImSupplierMaster>();
+
+        public List<ItemExpiryModel> ItemsNearingExpiry { get; set; }
+
+        public Dictionary<string, string> ItemTypes { get; set; }
+
+        public List<Partners> Partners { get; set; }
+
+        public InventoryManagementModel(IConfiguration configuration,
+            IHttpContextAccessor httpContextAccessor,
+            ITsMessService tsMessService
+
+            )
         {
-            _context = context;
+            _httpContextAccessor = httpContextAccessor;
+            _configuration = configuration;
+            _tsMessService = tsMessService;
         }
+      
 
         public void OnGet()
         {
-            // Ensure the type matches the property declaration
-            Vendors = _context.ImSupplierMasters.OrderBy(s => s.SupplierName).ToList();
+            Vendors = _tsMessService.getVendors();
+            ItemsNearingExpiry = _tsMessService.GetItemsNearingExpiry();
+            ItemTypes = _configuration.GetSection("ItemTypes").Get<Dictionary<string, string>>();
+            Partners = _tsMessService.getPratners();
         }
 
-        public JsonResult OnGetGetItems()
+        public JsonResult OnGetGetItems(string itemType)
         {
-            // Fetch items from the database
-            var items = _context.ImItemmasters.Where(i => i.ItemType == "Book Stall").Select(i => new { i.ItemId, i.ItemName }).ToList();
-
-            // Return the items as JSON
+            itemType = "Book Stall";
+            var items = _tsMessService.GetItems(itemType);
             return new JsonResult(items);
         }
 
         public JsonResult OnGetItemStock(string itemId)
         {
-            // Fetch the stock value for the given item from the database
-            var stock = _context.ImItemExistingStocks
-                .Where(i => i.ItemId == itemId)
-                .Select(i => i.ExistingStock)
-                .FirstOrDefault();
-
-            // Return the stock value as JSON
+            var stock = _tsMessService.GetExistingItemCount(itemId);
             return new JsonResult(new { Quantity = stock });
         }
 
@@ -64,6 +75,8 @@ namespace tsmess.Pages.PrincipalDashboard
         public DateTime ReceivedDate { get; set; } = DateTime.Now;
 
         [BindProperty]
+        [Required(ErrorMessage = "Quantity Received is required.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than 0.")]
         public int QuantityReceived { get; set; }
 
         [BindProperty]
@@ -88,7 +101,29 @@ namespace tsmess.Pages.PrincipalDashboard
         [BindProperty]
         public string Remarks { get; set; }
 
+        [BindProperty]
+        public string ItemType { get; set; } = "";
+
+        [BindProperty]
+        public bool IsAccepted { get; set; }
+
+        [BindProperty]
+        public string PartnerName { get; set; } = "";
+
         public async Task<IActionResult> OnPostAddInventoryAsync()
+        {
+            ModelState.Remove(nameof(PartnerName));
+
+            if (!ModelState.IsValid)
+            {
+                return Page();
+            }
+
+            TempData["SuccessMessage"] = _tsMessService.OnPostAddInventoryAsync(ImInventoryTransaction) ? "Inventory transaction saved successfully." : "";
+            return RedirectToPage("/PrincipalDashboard/Index", new { tab = "v-pills-messages" });
+        }
+
+        public async Task<IActionResult> OnPostAddSchoolInventoryAsync()
         {
             if (!ModelState.IsValid)
             {
@@ -96,10 +131,36 @@ namespace tsmess.Pages.PrincipalDashboard
                 //return new JsonResult(new { success = false, errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
             }
 
-            _context.ImInventoryTransactions.Add(ImInventoryTransaction);
-            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = _tsMessService.OnPostAddInventoryAsync(ImInventoryTransaction) ? "Inventory transaction saved successfully." : "";
 
             return RedirectToPage("/PrincipalDashboard/Index", new { tab = "v-pills-messages" });
         }
+
+        public async Task<IActionResult> OnPostDeleteInventoryAsync()
+        {
+
+            ModelState.Remove(nameof(PartnerName));
+            ModelState.Remove(nameof(VendorId));
+            ModelState.Remove(nameof(ReceivedDate));
+            ModelState.Remove(nameof(QuantityReceived));
+            ModelState.Remove(nameof(ExpiryDate));
+            ModelState.Remove(nameof(NoAdulteration));
+            ModelState.Remove(nameof(NoFoulSmell));
+            ModelState.Remove(nameof(NoInsects));
+            ModelState.Remove(nameof(NoTampering));
+            ModelState.Remove(nameof(NotCleanlyPacked));
+
+
+            if (!ModelState.IsValid)
+            {
+                return Page();
+            }
+           
+            TempData["SuccessMessage"] = _tsMessService.RemoveInventoryTransaction(ImInventoryTransaction) ? "Inventory transaction saved successfully." : "";
+
+            return RedirectToPage("/PrincipalDashboard/Index", new { tab = "v-pills-messages" });
+        }
+
+        
     }
 }
