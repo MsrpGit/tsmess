@@ -191,6 +191,8 @@
                                         <div class="col-sm-4">
                                             <input type="text" class="form-control" id="otp" placeholder="">
                                         </div>
+                                        <button type="button" id="sendOTP" class="btn btn-primary" onclick="window.sendOTP();">Send OTP</button>
+                                        <button type="button" class="btn btn-primary" onclick="validateOTP()">Validate OTP</button>
                                     </div>
                                     <div class="row mb-3">
                                         <div class="col-sm-12 text-center">
@@ -223,26 +225,5 @@
         }
     }
 
-    function validateOTP() {
-        var otpInput = document.getElementById("otp");
-        var otpValue = otpInput.value.trim();
-
-        if (otpValue === "") {
-            alert("Please enter the OTP.");
-            otpInput.focus();
-            return false;
-        }
-
-        // Optional: check if OTP is 6 digits and numeric
-        var otpRegex = /^\d{6}$/;
-        if (!otpRegex.test(otpValue)) {
-            alert("Please enter a valid 6-digit OTP.");
-            otpInput.focus();
-            return false;
-        }
-
-        return true; // allow form submission
-    }
-
-
+    
 </script>

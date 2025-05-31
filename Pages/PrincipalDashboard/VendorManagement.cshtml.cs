@@ -37,6 +37,10 @@ namespace tsmess.Pages.PrincipalDashboard
 
         [BindProperty]
         public IFormFile VendorDocs { get; set; }
+
+        [BindProperty]
+        public string toMobileNo { get; set; }
+
         public void OnGet()
         {
             vendors = _tsMessService.GetVendorMasterList();
@@ -92,6 +96,19 @@ namespace tsmess.Pages.PrincipalDashboard
             return DateTime.UtcNow.Ticks.ToString().Substring(10, 5);
         }
 
-
+       
+        public async Task<IActionResult> OnPostsendSMSAsync(string toMobileNo)
+        {
+            var Templateid = "1707172380728192202";
+            var senderId = "EDUSNC";
+            var message = "Dear {#var#} , Your OTP for the edusync mobile application login is {#var#} .Please enter in the concerned fields for further process. Thank you -EDUSNC\r\n";
+            var url = "http://sms.scubedigi.com/api.php?username=intense;password=intense;to=$$mobile$$;from=EDUSNC;message=$$message$$;PEID=1501470690000013369;templateid=1707172380728192202";
+            return new JsonResult(new
+            {
+                success = true,
+                message = "SMS send successfully."
+            });
+        }
+       
     }
 }

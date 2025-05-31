@@ -1,0 +1,103 @@
+﻿@page
+@model tsmess.Pages.PrincipalDashboard.DietModel
+@{
+    Layout = null;
+}
+<div class="col-md-9">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="section-title">Diet Plan</h5>
+        <div>
+            <!-- <button class="btn btn-outline-primary btn-sm">Print Menu</button> -->
+            <!-- <button class="btn btn-success btn-sm">Print Provisions</button> -->
+            <!-- <button class="btn btn-outline-secondary btn-sm">+ Raise Ticket</button> -->
+        </div>
+    </div>
+    <!-- Today's Plan -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <span class="text-primary">Today's Plan</span> (@DateTime.Now.ToString("dddd dd-MM-yyyy")) @* (Saturday 17-05-2025) *@
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered text-center">
+                <thead class="text-white" style="background: linear-gradient(to right, #4e54c8, #8f94fb);">
+                    <tr>
+                        <th>Breakfast</th>
+                        <th>Break</th>
+                        <th>Lunch</th>
+                        <th>Snacks</th>
+                        <th>Dinner</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Idli with Palli Chutney/Sambar</td>
+                        <td>Fruit</td>
+                        <td>Rice, Dal, Mix Vegetable Curry, Curd</td>
+                        <td>Biscuits with Tea</td>
+                        <td>Chapati, Paneer Butter Masala, Vegetable Pulao</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Tomorrow's Plan -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <span class="text-danger">Tomorrow's Plan</span> (@DateTime.Now.AddDays(1).ToString("dddd dd-MM-yyyy")) @* (Sunday 18-05-2025) *@
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered text-center">
+                <thead style="background: linear-gradient(to right, #4e54c8, #8f94fb); color: white;">
+                    <tr>
+                        <th>Breakfast</th>
+                        <th>Break</th>
+                        <th>Lunch</th>
+                        <th>Snacks</th>
+                        <th>Dinner</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Idli with Palli Chutney/Sambar</td>
+                        <td>Fruit</td>
+                        <td>Rice, Dal, Mix Vegetable Curry, Curd</td>
+                        <td>Biscuits with Tea</td>
+                        <td>Chapati, Paneer Butter Masala, Vegetable Pulao</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- Right Sidebar -->
+<div class="col-md-3">
+    <div class="card text-center mb-3">
+        <div class="card-body">
+            <h6 class="text-muted">Today's Attendance</h6>
+            <input type="text" class="form-control" value="620">
+        </div>
+    </div>
+    <div class="card text-center mb-3">
+        <div class="card-body">
+            <h6 class="text-muted">Sick Students</h6>
+            <input type="text" class="form-control" value="20">
+        </div>
+    </div>
+    <div class="card text-center mb-3">
+        <div class="card-body">
+            <h6 class="text-muted">Student Attendance for Tomorrow</h6>
+            <div class="row">
+                <div class="col-sm-6">
+                    <h6>Regular</h6>
+                    <input type="text" class="form-control" value="620">
+                </div>
+                <div class="col-sm-6">
+                    <h6>Sick</h6>
+                    <input type="text" class="form-control" value="20">
+                </div>
+            </div>
+        </div>
+    </div>
+    <button class="btn btn-magenta w-100 text-white" style="background-color: #aa007a;">Go</button>
+    <button class="btn btn-success w-100 mt-3">Print Provisions</button>
+</div>

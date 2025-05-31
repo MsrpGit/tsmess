@@ -2,6 +2,7 @@ using CampusDAO;
 using DL.Data;
 using EdusyncSecurity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using tsmess.Services;
 
@@ -16,6 +17,8 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+builder.Services.AddScoped<IRazorRenderService, RazorRenderService>();
 // Add services to the container.
 builder.Services.AddRazorPages();
 
@@ -26,6 +29,7 @@ builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddScoped<IDBInterface, DBConnection>();
 
 builder.Services.AddTransient<ITsMessService, TsMessService>();
+
 
 // Register DbContext with a placeholder connection string (will be replaced dynamically)
 //builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
@@ -90,6 +94,26 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
+//app.MapPost("/api/send-sms", async (HttpContext context) =>
+//{
+//using var reader = new StreamReader(context.Request.Body);
+//var body = await reader.ReadToEndAsync();
+//var data = System.Text.Json.JsonSerializer.Deserialize<SmsRequest>(body);
+
+//// Generate fake OTP
+//var otp = "123456";
+//Console.WriteLine($"Sending OTP to: {data.ToMobileNo}");
+
+//return Results.Json(new { success = true, otp });
+//});
+
+
+
 //app.MapFallbackToPage("/PrincipalDashboard");
 
 app.Run();
+
+//public class SmsRequest
+//{
+//    public string ToMobileNo { get; set; }
+//}
